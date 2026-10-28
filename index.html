@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#3d2a18">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<title>MS Staff Attendance</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--walnut:#3d2a18;--gold:#b8863b;--paper:#faf6ee;--ink:#2b2118;--mute:#7a6b5a;--line:#e6dcc8;--ok:#2f7d4f;--bad:#a8372c;--card:#fff}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:Inter,system-ui,sans-serif;background:var(--paper);color:var(--ink);min-height:100vh}
+header{background:var(--walnut);color:#fff;padding:14px 16px calc(14px);display:flex;align-items:center;justify-content:space-between}
+header h1{font-family:'Cormorant Garamond',serif;font-size:22px;margin:0;color:#f0d9a8}
+header button{background:none;border:1px solid #8a6b40;color:#f0d9a8;border-radius:8px;padding:6px 10px;font-size:13px}
+main{max-width:520px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+label{display:block;font-size:13px;color:var(--mute);margin:10px 0 4px}
+input{width:100%;padding:12px;font-size:16px;border:1px solid var(--line);border-radius:10px;background:#fff}
+.btn{width:100%;margin-top:14px;padding:13px;font-size:16px;font-weight:600;border:0;border-radius:10px;background:var(--gold);color:#fff}
+.btn:disabled{opacity:.6}
+.err{color:var(--bad);font-size:14px;margin-top:10px}
+.note{color:var(--mute);font-size:12px;margin-top:8px}
+.chk{display:flex;gap:8px;align-items:center;margin-top:12px;font-size:14px}.chk input{width:auto}
+.hello{font-family:'Cormorant Garamond',serif;font-size:24px;margin:0}
+.sub{color:var(--mute);font-size:13px}
+.today{display:flex;gap:10px;margin-top:12px}
+.today div{flex:1;text-align:center;background:var(--paper);border-radius:10px;padding:12px 6px}
+.today b{display:block;font-size:22px;margin-top:4px}
+.today span{font-size:12px;color:var(--mute)}
+.nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.nav button{background:#fff;border:1px solid var(--line);border-radius:8px;padding:8px 14px;font-size:16px}
+.nav b{font-family:'Cormorant Garamond',serif;font-size:20px}
+.sum{display:flex;gap:8px;margin-bottom:12px}
+.sum div{flex:1;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center;font-size:12px;color:var(--mute)}
+.sum b{display:block;font-size:20px;color:var(--ink)}
+.day{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--line);font-size:14px}
+.day:last-child{border:0}
+.d{width:78px}.d small{display:block;color:var(--mute)}
+.t{flex:1;text-align:center}
+.h{width:62px;text-align:right;color:var(--mute)}
+.warn{color:var(--bad)}
+.stale{background:#fff3d6;border:1px solid #e8cf93;border-radius:10px;padding:8px 12px;font-size:12px;margin-bottom:12px}
+.empty{text-align:center;color:var(--mute);padding:24px 0}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<header><h1>MS Staff Attendance</h1><button id="out" class="hidden">Sign out</button></header>
+<main>
+  <!-- setup (only when URL below is blank) -->
+  <section id="setup" class="card hidden">
+    <b>One-time setup</b>
+    <label>Attendance service URL</label>
+    <input id="urlIn" placeholder="https://script.google.com/macros/s/.../exec">
+    <button class="btn" id="urlSave">Save</button>
+  </section>
+
+  <section id="login" class="card hidden">
+    <label>Staff code</label>
+    <input id="code" autocapitalize="characters" autocomplete="username" placeholder="e.g. MSI001">
+    <label>PIN</label>
+    <input id="pin" type="password" inputmode="numeric" autocomplete="current-password" placeholder="Your PIN">
+    <div class="chk"><input type="checkbox" id="keep" checked><span>Keep me signed in on this phone</span></div>
+    <button class="btn" id="go">View my attendance</button>
+    <div class="err" id="loginErr"></div>
+    <div class="note">Ask the office if you don't have a PIN.</div>
+  </section>
+
+  <section id="view" class="hidden">
+    <div class="card">
+      <p class="hello" id="hello"></p>
+      <div class="sub" id="todayDate"></div>
+      <div class="today">
+        <div><span>First punch</span><b id="tIn">--:--</b></div>
+        <div><span>Last punch</span><b id="tOut">--:--</b></div>
+        <div><span>Hours</span><b id="tHrs">--</b></div>
+      </div>
+    </div>
+    <div class="stale hidden" id="stale"></div>
+    <div class="nav"><button id="prev">‹</button><b id="monthLbl"></b><button id="next">›</button></div>
+    <div class="sum">
+      <div><b id="sDays">0</b>Days present</div>
+      <div><b id="sHrs">0h</b>Total hours</div>
+      <div><b id="sSingle">0</b>Single punch</div>
+    </div>
+    <div class="card" id="list"></div>
+    <div class="note">Shows raw machine punches. Final attendance for salary is decided by the office.</div>
+    <button class="btn" id="refresh">Refresh</button>
+  </section>
+</main>
+
+<script>
+// ===== Set this once to your Apps Script Web App URL (or leave blank and enter it on first run) =====
+const SERVICE_URL = '';
+
+const LS = {
+  get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
+  set(k,v){ try{ localStorage.setItem(k,v); }catch(e){} },
+  del(k){ try{ localStorage.removeItem(k); }catch(e){} }
+};
+const $ = id => document.getElementById(id);
+const MON = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+let month = null, session = null;   // session = {code, pin}
+
+function url(){ return SERVICE_URL || LS.get('svcUrl') || ''; }
+function show(id){ ['setup','login','view'].forEach(s => $(s).classList.toggle('hidden', s !== id)); $('out').classList.toggle('hidden', id !== 'view'); }
+
+function hm(mins){ return Math.floor(mins/60) + 'h ' + String(mins%60).padStart(2,'0') + 'm'; }
+function toMin(t){ const [h,m] = t.split(':').map(Number); return h*60 + m; }
+function addMonth(ym, d){ let [y,m] = ym.split('-').map(Number); m += d; while(m>12){m-=12;y++;} while(m<1){m+=12;y--;} return y + '-' + String(m).padStart(2,'0'); }
+function esc(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+async function fetchData(){
+  // text/plain avoids a CORS preflight, which Apps Script cannot answer
+  const res = await fetch(url(), {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body: JSON.stringify({action:'staffView', code: session.code, pin: session.pin, month: month})});
+  return res.json();
+}
+
+function render(d, stale){
+  month = d.month;
+  $('hello').textContent = 'Hello, ' + (d.name || d.code);
+  const t = new Date(d.today + 'T00:00:00');
+  $('todayDate').textContent = DOW[t.getDay()] + ', ' + t.getDate() + ' ' + MON[t.getMonth()] + ' ' + t.getFullYear();
+  const td = d.days.find(x => x.date === d.today);
+  if(td && td.punches.length){
+    const p = td.punches;
+    $('tIn').textContent = p[0];
+    $('tOut').textContent = p.length > 1 ? p[p.length-1] : '--:--';
+    $('tHrs').textContent = p.length > 1 ? hm(toMin(p[p.length-1]) - toMin(p[0])) : '--';
+  } else { $('tIn').textContent = '--:--'; $('tOut').textContent = '--:--'; $('tHrs').textContent = '--'; }
+
+  const [y,m] = d.month.split('-').map(Number);
+  $('monthLbl').textContent = MON[m-1] + ' ' + y;
+  $('next').disabled = d.month >= d.today.slice(0,7);
+
+  let total = 0, single = 0;
+  const rows = d.days.slice().reverse().map(day=>{
+    const p = day.punches, dt = new Date(day.date + 'T00:00:00');
+    let hrs = '—';
+    if(p.length > 1){ const mn = toMin(p[p.length-1]) - toMin(p[0]); total += mn; hrs = hm(mn); }
+    else single++;
+    return '<div class="day"><div class="d"><b>' + dt.getDate() + ' ' + MON[dt.getMonth()].slice(0,3) + '</b><small>' + DOW[dt.getDay()] + '</small></div>' +
+      '<div class="t">' + esc(p[0]) + ' → ' + (p.length > 1 ? esc(p[p.length-1]) : '<span class="warn">no out punch</span>') + '</div>' +
+      '<div class="h">' + hrs + '</div></div>';
+  });
+  $('list').innerHTML = rows.length ? rows.join('') : '<div class="empty">No punches found for this month.</div>';
+  $('sDays').textContent = d.days.length;
+  $('sHrs').textContent = hm(total);
+  $('sSingle').textContent = single;
+
+  const st = $('stale');
+  if(stale){ st.textContent = 'Offline — showing data saved on ' + stale; st.classList.remove('hidden'); } else st.classList.add('hidden');
+  show('view');
+}
+
+async function load(){
+  $('refresh').disabled = true;
+  try{
+    const d = await fetchData();
+    if(!d.ok){
+      if(d.locked || /Wrong|Enter/.test(d.error || '')){ signOut(true); $('loginErr').textContent = d.error; return; }
+      throw new Error(d.error || 'Server error');
+    }
+    LS.set('cache_' + d.month, JSON.stringify({at: new Date().toLocaleString(), d}));
+    render(d, null);
+  }catch(e){
+    const c = LS.get('cache_' + month);
+    if(c){ try{ const o = JSON.parse(c); render(o.d, o.at); }catch(_){ } }
+    else { show('view'); $('list').innerHTML = '<div class="empty">Can\'t reach the server. Check your internet and tap Refresh.</div>'; }
+  }finally{ $('refresh').disabled = false; }
+}
+
+function signOut(keepMsg){
+  LS.del('session');
+  Object.keys(localStorage || {}).forEach(k => { if(k.indexOf('cache_') === 0) LS.del(k); });
+  session = null; $('pin').value = '';
+  if(keepMsg !== true) $('loginErr').textContent = '';
+  show('login');
+}
+
+$('go').onclick = async ()=>{
+  const code = $('code').value.trim(), pin = $('pin').value.trim();
+  if(!code || !pin){ $('loginErr').textContent = 'Enter your staff code and PIN.'; return; }
+  $('go').disabled = true; $('loginErr').textContent = '';
+  session = {code, pin}; month = null;
+  try{
+    const d = await fetchData();
+    if(!d.ok){ $('loginErr').textContent = d.error || 'Could not sign in.'; session = null; }
+    else {
+      if($('keep').checked) LS.set('session', JSON.stringify(session));
+      month = d.month; LS.set('cache_' + d.month, JSON.stringify({at: new Date().toLocaleString(), d})); render(d, null);
+    }
+  }catch(e){ $('loginErr').textContent = 'Can\'t reach the server. Check your internet.'; session = null; }
+  $('go').disabled = false;
+};
+$('pin').addEventListener('keydown', e => { if(e.key === 'Enter') $('go').click(); });
+$('out').onclick = () => signOut();
+$('refresh').onclick = load;
+$('prev').onclick = ()=>{ month = addMonth(month, -1); load(); };
+$('next').onclick = ()=>{ month = addMonth(month, 1); load(); };
+$('urlSave').onclick = ()=>{ const v = $('urlIn').value.trim(); if(/^https:\/\/script\.google\.com\//.test(v)){ LS.set('svcUrl', v); start(); } else alert('Paste the full Web App URL (starts with https://script.google.com/)'); };
+
+function start(){
+  if(!url()){ show('setup'); $('setup').classList.remove('hidden'); $('login').classList.add('hidden'); return; }
+  const s = LS.get('session');
+  if(s){ try{ session = JSON.parse(s); load(); return; }catch(e){} }
+  show('login');
+}
+if('serviceWorker' in navigator) navigator.serviceWorker.register('service-worker.js').catch(()=>{});
+start();
+</script>
+</body>
+</html>

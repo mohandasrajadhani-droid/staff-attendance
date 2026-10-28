@@ -88,7 +88,8 @@ input{width:100%;padding:12px;font-size:16px;border:1px solid var(--line);border
     </div>
     <div class="card" id="list"></div>
     <div class="note">Shows raw machine punches. Final attendance for salary is decided by the office.</div>
-    <button class="btn" id="refresh">Refresh</button>
+    <div class="note" id="upd" style="text-align:center"></div>
+    <button class="btn" id="refresh">Refresh now</button>
   </section>
 </main>
 
@@ -155,6 +156,7 @@ function render(d, stale){
 
   const st = $('stale');
   if(stale){ st.textContent = 'Offline — showing data saved on ' + stale; st.classList.remove('hidden'); } else st.classList.add('hidden');
+  $('upd').textContent = 'Updated ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) + ' · refreshes automatically';
   show('view');
 }
 
@@ -211,6 +213,11 @@ function start(){
   if(s){ try{ session = JSON.parse(s); load(); return; }catch(e){} }
   show('login');
 }
+// auto-refresh: every 60 s while the app is open, and immediately when you come back to it
+function viewOpen(){ return session && !$('view').classList.contains('hidden') && !document.hidden && !$('refresh').disabled; }
+setInterval(()=>{ if(viewOpen()) load(); }, 60000);
+document.addEventListener('visibilitychange', ()=>{ if(viewOpen()) load(); });
+window.addEventListener('online', ()=>{ if(viewOpen()) load(); });
 if('serviceWorker' in navigator) navigator.serviceWorker.register('service-worker.js').catch(()=>{});
 start();
 </script>

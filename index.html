@@ -134,6 +134,7 @@ textarea{min-height:76px;resize:vertical}
     </div>
 
     <div class="note" id="upd" style="text-align:center"></div>
+    <div class="note" style="text-align:center">Staff app v3.0 · leave &amp; calendar</div>
     <button class="btn ghost" id="refresh">Refresh now</button>
   </section>
 </main>
@@ -224,6 +225,7 @@ function renderAtt(d, stale){
   $('monthLbl').textContent = MON[m-1] + ' ' + y;
   $('next').disabled = d.month >= d.today.slice(0,7);
 
+  if(!d.calendar){ const st0 = $('stale'); st0.textContent = 'The attendance script on the server has not been updated to v3 yet, so leave days cannot be shown. Please tell the office.'; st0.classList.remove('hidden'); }
   const cal = d.calendar || [];
   const s = d.summary || {present:0, absent:0, onLeave:0, minutes:0};
   $('sPresent').textContent = s.present;
@@ -233,7 +235,8 @@ function renderAtt(d, stale){
   $('list').innerHTML = cal.length ? cal.slice().reverse().map(c => dayRow(c, d.today)).join('') : '<div class="empty">Nothing to show for this month yet.</div>';
 
   const st = $('stale');
-  if(stale){ st.textContent = 'Offline — showing data saved on ' + stale; st.classList.remove('hidden'); } else st.classList.add('hidden');
+  if(!d.calendar){ /* warning already shown above */ }
+  else if(stale){ st.textContent = 'Offline — showing data saved on ' + stale; st.classList.remove('hidden'); } else st.classList.add('hidden');
 }
 
 /* ---------- Leave tab ---------- */

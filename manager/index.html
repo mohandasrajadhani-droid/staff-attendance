@@ -80,6 +80,21 @@ input,select,textarea{width:100%;padding:12px;font-size:16px;border:1px solid va
 .tabs button.on{color:var(--walnut);box-shadow:inset 0 3px 0 var(--gold)}
 .badge{display:inline-block;min-width:20px;padding:1px 6px;margin-left:6px;border-radius:999px;background:var(--bad);color:#fff;font-size:12px}
 .hidden{display:none !important}
+
+/* ---- My attendance tab (manager's own staff view) ---- */
+#pane-me .mnav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+#pane-me .mnav button{background:#fff;border:1px solid var(--line);border-radius:8px;padding:8px 14px;font-size:16px}
+#pane-me .mnav button:disabled{opacity:.4}
+#pane-me .mnav b{font-family:'Cormorant Garamond',serif;font-size:20px}
+#pane-me .hello{font-family:'Cormorant Garamond',serif;font-size:24px;margin:0}
+#pane-me .metoday{display:flex;gap:10px;margin-top:12px}
+#pane-me .metoday div{flex:1;text-align:center;background:var(--paper);border-radius:10px;padding:12px 6px}
+#pane-me .metoday b{display:block;font-size:22px;margin-top:4px}
+#pane-me .metoday span{font-size:12px;color:var(--mute)}
+#pane-me .lnk{background:none;border:0;color:var(--gold);font-weight:600;font-size:12px;padding:2px 0;display:block;margin:2px 0 0}
+#pane-me .two{display:flex;gap:10px}#pane-me .two>div{flex:1}
+#pane-me .lv button{margin-top:8px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:13px;color:var(--bad)}
+.okmsg{color:var(--ok);font-size:14px;margin-top:10px}
 </style>
 </head>
 <body>
@@ -151,14 +166,53 @@ input,select,textarea{width:100%;padding:12px;font-size:16px;border:1px solid va
       <div class="card"><b>Leave requests</b><div id="dLeaves"></div></div>
     </div>
 
+    <!-- ===== My attendance tab (manager's own punches + leave) ===== -->
+    <div id="pane-me" class="hidden">
+      <div class="card">
+        <p class="hello" id="meHello"></p>
+        <div class="sub" id="meDate"></div>
+        <div class="metoday">
+          <div><span>First punch</span><b id="meIn">--:--</b></div>
+          <div><span>Last punch</span><b id="meOut">--:--</b></div>
+          <div><span>Hours</span><b id="meHrs">--</b></div>
+        </div>
+      </div>
+      <div class="mnav"><button id="meP">‹</button><b id="meLbl"></b><button id="meN">›</button></div>
+      <div class="tiles">
+        <div><b id="mePresent">0</b>Present</div>
+        <div><b id="meAbs">0</b>Leave</div>
+        <div><b id="meApp">0</b>Approved</div>
+        <div><b id="meNet">0h</b>Net hrs</div>
+        <div><b id="meLun">–</b>Avg lunch</div>
+      </div>
+      <div class="card" id="meList"></div>
+      <div class="card">
+        <b>Apply for my leave</b>
+        <label>Type</label>
+        <select id="meType"></select>
+        <div class="two">
+          <div><label>From</label><input type="date" id="meFrom"></div>
+          <div><label>To</label><input type="date" id="meTo"></div>
+        </div>
+        <label>Reason</label>
+        <textarea id="meReason" maxlength="300" placeholder="Short reason"></textarea>
+        <button class="btn" id="meSend">Send request</button>
+        <div class="err" id="meErr"></div>
+        <div class="okmsg" id="meOk"></div>
+        <div class="note">Another manager has to approve your own leave.</div>
+      </div>
+      <div class="card"><b>My leave requests</b><div id="meLeaves"></div></div>
+    </div>
+
     <div class="note" id="upd" style="text-align:center"></div>
-    <div class="note" style="text-align:center">Manager app v3.1 · lunch breaks</div>
+    <div class="note" style="text-align:center">Manager app v3.2 · includes my attendance &amp; leave</div>
     <button class="btn ghost" id="refresh">Refresh now</button>
   </section>
 </main>
 <nav class="tabs hidden" id="tabs">
   <button id="tab-today" class="on">Staff today</button>
   <button id="tab-leaves">Leave requests<span class="badge hidden" id="badge">0</span></button>
+  <button id="tab-me">My attendance</button>
 </nav>
 
 <script>
@@ -185,6 +239,8 @@ function setTab(t){
   tab = t; detail = null;
   $('pane-today').classList.toggle('hidden', t !== 'today');
   $('pane-leaves').classList.toggle('hidden', t !== 'leaves');
+  $('pane-me').classList.toggle('hidden', t !== 'me');
+  $('tab-me').classList.toggle('on', t === 'me');
   $('pane-detail').classList.add('hidden');
   $('tab-today').classList.toggle('on', t === 'today');
   $('tab-leaves').classList.toggle('on', t === 'leaves');
@@ -314,7 +370,7 @@ function renderDetail(d){
 }
 async function openDetail(code, month){
   detail = code;
-  $('pane-today').classList.add('hidden'); $('pane-leaves').classList.add('hidden'); $('pane-detail').classList.remove('hidden');
+  $('pane-today').classList.add('hidden'); $('pane-leaves').classList.add('hidden'); $('pane-me').classList.add('hidden'); $('pane-detail').classList.remove('hidden');
   window.scrollTo(0, 0);
   await loadDetail(month);
 }
@@ -327,6 +383,65 @@ async function loadDetail(month){
   }catch(e){ $('upd').textContent = 'Can\'t reach the server.'; }
 }
 
+
+/* ---------- My attendance tab ---------- */
+let meMonth = null, meCancel = null;
+function meDayRow(c, today){
+  const dt = new Date(c.date + 'T00:00:00Z');
+  const left = '<div class="d"><b>' + dt.getUTCDate() + ' ' + MON[dt.getUTCMonth()].slice(0,3) + '</b><small>' + DOW[dt.getUTCDay()] + '</small></div>';
+  let mid = '', right = '';
+  const p = c.punches || [];
+  if(c.status === 'Present'){
+    mid = esc(p[0]) + ' → ' + (p.length > 1 ? esc(p[p.length-1]) : (c.date === today ? '<span class="chip green">still in</span>' : '<span class="warn">no out punch</span>'));
+    right = c.net != null ? hm(c.net) : (p.length > 1 ? hm(toMin(p[p.length-1]) - toMin(p[0])) : '—');
+    if(c.lunchOut) mid += '<span class="lunch' + (c.over ? ' over' : '') + '">🍽 ' + esc(c.lunchOut) + ' → ' + esc(c.lunchIn) + ' · ' + c.breakMin + ' min' + (c.over ? ' ⚠' : '') + '</span>';
+  } else if(c.status === 'Absent'){
+    mid = '<span class="chip red">Leave</span><button class="lnk" data-meapply="' + c.date + '">Apply for this day</button>';
+  } else if(c.status === 'On leave'){ mid = '<span class="chip green">On leave · ' + esc(c.leaveType) + '</span>';
+  } else if(c.status === 'Leave pending'){ mid = '<span class="chip amber">Applied · waiting approval</span>';
+  } else if(c.status === 'Weekly off' || c.status === 'Holiday'){ mid = '<span class="chip grey">' + esc(c.status) + '</span>';
+  } else mid = '<span class="chip grey">No punch yet</span>';
+  return '<div class="day">' + left + '<div class="t">' + mid + '</div><div class="h">' + right + '</div></div>';
+}
+function renderMe(d){
+  meMonth = d.month;
+  $('meHello').textContent = 'Hello, ' + (d.name || d.code);
+  $('meDate').textContent = longDate(d.today);
+  const td = (d.days || []).find(x => x.date === d.today);
+  if(td && td.punches.length){
+    const p = td.punches;
+    $('meIn').textContent = p[0]; $('meOut').textContent = p.length > 1 ? p[p.length-1] : '--:--';
+    $('meHrs').textContent = p.length > 1 ? hm(toMin(p[p.length-1]) - toMin(p[0])) : '--';
+  } else { $('meIn').textContent = '--:--'; $('meOut').textContent = '--:--'; $('meHrs').textContent = '--'; }
+  const [y,m] = d.month.split('-').map(Number);
+  $('meLbl').textContent = MON[m-1] + ' ' + y;
+  $('meN').disabled = d.month >= d.today.slice(0,7);
+  const sm = d.summary || {present:0, absent:0, onLeave:0, minutes:0};
+  $('mePresent').textContent = sm.present; $('meAbs').textContent = sm.absent; $('meApp').textContent = sm.onLeave;
+  $('meNet').textContent = Math.floor((sm.netMinutes || sm.minutes)/60) + 'h';
+  $('meLun').textContent = sm.lunchDays ? Math.round(sm.lunchTotal / sm.lunchDays) + 'm' : '–';
+  const cal = d.calendar || [];
+  $('meList').innerHTML = cal.length ? cal.slice().reverse().map(c => meDayRow(c, d.today)).join('') : '<div class="empty">Nothing to show for this month yet.</div>';
+  const sel = $('meType');
+  if(!sel.options.length) (d.leaveTypes || ['Casual','Sick','Earned','Unpaid','Other']).forEach(t => { const o = document.createElement('option'); o.textContent = t; o.value = t; sel.appendChild(o); });
+  $('meFrom').min = addDays(d.today, -31); $('meTo').min = addDays(d.today, -31);
+  const list = d.leaves || [];
+  $('meLeaves').innerHTML = list.length ? list.map(l => {
+    const chip = l.status === 'Approved' ? 'green' : l.status === 'Pending' ? 'amber' : l.status === 'Rejected' ? 'red' : 'grey';
+    return '<div class="lv"><div class="row"><b>' + (l.from === l.to ? dmy(l.from) : dmy(l.from) + ' → ' + dmy(l.to)) + ' · ' + l.days + (l.days === 1 ? ' day' : ' days') + '</b><span class="chip ' + chip + '">' + esc(l.status) + '</span></div>' +
+      '<div class="rs">' + esc(l.type) + ' — ' + esc(l.reason) + '</div>' +
+      (l.remark ? '<div class="rs">Remark' + (l.decidedBy ? ' (' + esc(l.decidedBy) + ')' : '') + ': ' + esc(l.remark) + '</div>' : '') +
+      (l.status === 'Pending' ? '<button data-mecancel="' + esc(l.id) + '">Cancel request</button>' : '') + '</div>';
+  }).join('') : '<div class="empty">No leave requests yet.</div>';
+}
+async function loadMe(){
+  try{
+    const d = await api({action:'staffView', month: meMonth || undefined});
+    if(!d.ok){ if(authFail(d)) return; $('upd').textContent = d.error || 'Could not load'; return; }
+    renderMe(d);
+  }catch(e){ if(!meMonth) $('meList').innerHTML = '<div class="empty">Can\'t reach the server. Tap Refresh.</div>'; }
+}
+
 /* ---------- loading ---------- */
 async function load(){
   if(detail){ return loadDetail(); }
@@ -337,6 +452,7 @@ async function load(){
     data = d; date = d.date;
     LS.set('mgr_cache', JSON.stringify({at: new Date().toLocaleString(), d}));
     renderToday(); renderLeaves();
+    if(tab === 'me') loadMe();
     $('upd').textContent = 'Updated ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) + ' · refreshes automatically';
     showMain('view');
   }catch(e){
@@ -348,7 +464,7 @@ async function load(){
 }
 function signOut(keepMsg){
   LS.del('session'); LS.del('mgr_cache');
-  session = null; data = null; date = null; detail = null; $('pin').value = '';
+  session = null; data = null; date = null; detail = null; meMonth = null; $('pin').value = '';
   if(keepMsg !== true) $('loginErr').textContent = '';
   showMain('login');
 }
@@ -375,6 +491,39 @@ $('out').onclick = () => signOut();
 $('refresh').onclick = load;
 $('tab-today').onclick = () => { setTab('today'); };
 $('tab-leaves').onclick = () => { setTab('leaves'); };
+$('tab-me').onclick = () => { setTab('me'); loadMe(); };
+$('meP').onclick = () => { meMonth = addMonth(meMonth, -1); loadMe(); };
+$('meN').onclick = () => { meMonth = addMonth(meMonth, 1); loadMe(); };
+$('meList').addEventListener('click', e => {
+  const b = e.target.closest('[data-meapply]'); if(!b) return;
+  $('meFrom').value = b.dataset.meapply; $('meTo').value = b.dataset.meapply;
+  $('meErr').textContent = ''; $('meOk').textContent = '';
+  $('meReason').scrollIntoView({behavior:'smooth', block:'center'}); $('meReason').focus();
+});
+$('meFrom').addEventListener('change', () => { if(!$('meTo').value || $('meTo').value < $('meFrom').value) $('meTo').value = $('meFrom').value; });
+$('meSend').onclick = async () => {
+  $('meErr').textContent = ''; $('meOk').textContent = '';
+  const from = $('meFrom').value, to = $('meTo').value || from, reason = $('meReason').value.trim();
+  if(!from){ $('meErr').textContent = 'Choose the From date.'; return; }
+  if(!reason){ $('meErr').textContent = 'Please write a short reason.'; return; }
+  $('meSend').disabled = true;
+  try{
+    const r = await api({action:'applyLeave', type: $('meType').value, from, to, reason});
+    if(!r.ok) $('meErr').textContent = r.error || 'Could not send.';
+    else { $('meOk').textContent = 'Request sent for ' + r.days + (r.days === 1 ? ' day' : ' days') + '.'; $('meReason').value = ''; $('meFrom').value = ''; $('meTo').value = ''; loadMe(); }
+  }catch(_){ $('meErr').textContent = 'Can\'t reach the server. Check your internet and try again.'; }
+  $('meSend').disabled = false;
+};
+$('meLeaves').addEventListener('click', async e => {
+  const b = e.target.closest('[data-mecancel]'); if(!b) return;
+  if(meCancel !== b.dataset.mecancel){ meCancel = b.dataset.mecancel; b.textContent = 'Tap again to cancel'; return; }
+  b.disabled = true;
+  try{
+    const r = await api({action:'cancelLeave', id: b.dataset.mecancel}); meCancel = null;
+    if(!r.ok){ $('meErr').textContent = r.error || 'Could not cancel.'; b.disabled = false; return; }
+    loadMe(); load();
+  }catch(_){ $('meErr').textContent = 'Can\'t reach the server.'; b.disabled = false; }
+});
 $('dPrev').onclick = () => { date = addDays(date, -1); load(); };
 $('dNext').onclick = () => { if(date < data.today) { date = addDays(date, 1); load(); } };
 $('dateIn').onchange = () => { if($('dateIn').value){ date = $('dateIn').value; load(); } };
@@ -407,7 +556,7 @@ function start(){
 function viewOpen(){
   const a = document.activeElement;
   return session && !$('view').classList.contains('hidden') && !document.hidden && !busy &&
-    !(a && (a.tagName === 'INPUT') && a.id !== 'dateIn' && a.value);   // don't refresh while a remark is being typed
+    !(a && a.id === 'meReason') && !(a && (a.tagName === 'INPUT') && a.id !== 'dateIn' && a.value);   // don't refresh while a remark is being typed
 }
 setInterval(()=>{ if(viewOpen()) load(); }, 120000);
 document.addEventListener('visibilitychange', ()=>{ if(viewOpen()) load(); });

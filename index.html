@@ -50,6 +50,8 @@ textarea{min-height:76px;resize:vertical}
 .chip.red{background:#fbe6e3;color:var(--bad)}
 .chip.green{background:#e0f2e7;color:var(--ok)}
 .chip.amber{background:#fdf0d2;color:var(--warn)}
+.lunch{display:block;font-size:12px;color:var(--mute);margin-top:2px}
+.lunch.over{color:var(--bad);font-weight:700}
 .chip.grey{background:#eee7da;color:var(--mute)}
 .lnk{background:none;border:0;color:var(--gold);font-weight:600;font-size:12px;padding:2px 0;display:block;margin:2px auto 0}
 .stale{background:#fff3d6;border:1px solid #e8cf93;border-radius:10px;padding:8px 12px;font-size:12px;margin-bottom:12px}
@@ -134,7 +136,7 @@ textarea{min-height:76px;resize:vertical}
     </div>
 
     <div class="note" id="upd" style="text-align:center"></div>
-    <div class="note" style="text-align:center">Staff app v3.0 · leave &amp; calendar</div>
+    <div class="note" style="text-align:center">Staff app v3.1 · lunch breaks</div>
     <button class="btn ghost" id="refresh">Refresh now</button>
   </section>
 </main>
@@ -193,7 +195,8 @@ function dayRow(c, today){
   const p = c.punches || [];
   if(c.status === 'Present'){
     mid = esc(p[0]) + ' → ' + (p.length > 1 ? esc(p[p.length-1]) : (c.date === today ? '<span class="chip green">still in</span>' : '<span class="warn">no out punch</span>'));
-    right = p.length > 1 ? hm(toMin(p[p.length-1]) - toMin(p[0])) : '—';
+    right = c.net != null ? hm(c.net) : (p.length > 1 ? hm(toMin(p[p.length-1]) - toMin(p[0])) : '—');
+    if(c.lunchOut) mid += '<span class="lunch' + (c.over ? ' over' : '') + '">🍽 ' + esc(c.lunchOut) + ' → ' + esc(c.lunchIn) + ' · ' + c.breakMin + ' min' + (c.over ? ' ⚠' : '') + '</span>';
   } else if(c.status === 'Absent'){
     mid = '<span class="chip red">Leave</span><button class="lnk" data-apply="' + c.date + '">Apply for this day</button>';
   } else if(c.status === 'On leave'){

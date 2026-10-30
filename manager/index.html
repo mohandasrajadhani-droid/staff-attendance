@@ -49,6 +49,8 @@ input,select,textarea{width:100%;padding:12px;font-size:16px;border:1px solid va
 .chip.green{background:#e0f2e7;color:var(--ok)}
 .chip.blue{background:#e1ecf8;color:var(--blue)}
 .chip.amber{background:#fdf0d2;color:var(--warn)}
+.lunch{display:block;font-size:12px;color:var(--mute);margin-top:2px}
+.lunch.over{color:var(--bad);font-weight:700}
 .chip.grey{background:#eee7da;color:var(--mute)}
 .empty{text-align:center;color:var(--mute);padding:24px 0}
 .lv{padding:14px 0;border-bottom:1px solid var(--line);font-size:14px}
@@ -136,14 +138,16 @@ input,select,textarea{width:100%;padding:12px;font-size:16px;border:1px solid va
         <div><b id="sPresent">0</b>Present</div>
         <div><b id="sAbsent">0</b>Absent</div>
         <div><b id="sLeave">0</b>On leave</div>
-        <div><b id="sHrs">0h</b>Hours</div>
+        <div><b id="sHrs">0h</b>Net hrs</div>
+        <div><b id="sLunch">–</b>Avg lunch</div>
       </div>
+      <div class="note warn" id="lunchNote" style="text-align:center"></div>
       <div class="card" id="dList"></div>
       <div class="card"><b>Leave requests</b><div id="dLeaves"></div></div>
     </div>
 
     <div class="note" id="upd" style="text-align:center"></div>
-    <div class="note" style="text-align:center">Manager app v3.0</div>
+    <div class="note" style="text-align:center">Manager app v3.1 · lunch breaks</div>
     <button class="btn ghost" id="refresh">Refresh now</button>
   </section>
 </main>
@@ -214,7 +218,7 @@ function chipFor(s, leaveType){
 }
 
 /* ---------- Today tab ---------- */
-const FILTERS = [['all','All'],['present','Present'],['absent','Absent'],['leave','On leave'],['notin','Not in'],['off','Off']];
+const FILTERS = [['all','All'],['present','Present'],['absent','Absent'],['leave','On leave'],['notin','Not in'],['off','Off'],['over','Over lunch']];
 function renderToday(){
   const d = data; if(!d) return;
   $('dateIn').value = d.date; $('dateIn').max = d.today;
@@ -222,20 +226,24 @@ function renderToday(){
   $('cPresent').textContent = d.counts.present; $('cAbsent').textContent = d.counts.absent;
   $('cLeave').textContent = d.counts.onLeave; $('cNot').textContent = d.counts.notIn; $('cOff').textContent = d.counts.off;
 
-  const cnt = {all: d.staff.length, present:0, absent:0, leave:0, notin:0, off:0};
-  d.staff.forEach(s => cnt[bucket(s.status)]++);
+  const cnt = {all: d.staff.length, present:0, absent:0, leave:0, notin:0, off:0, over:0};
+  d.staff.forEach(s => { cnt[bucket(s.status)]++; if(s.over) cnt.over++; });
   $('chips').innerHTML = FILTERS.map(f => '<button data-f="' + f[0] + '" class="' + (filter === f[0] ? 'on' : '') + '">' + f[1] + ' ' + cnt[f[0]] + '</button>').join('');
 
   const q = query.trim().toLowerCase();
   const order = {absent:0, notin:1, present:2, leave:3, off:4};
-  const rows = d.staff.filter(s => (filter === 'all' || bucket(s.status) === filter) &&
+  const rows = d.staff.filter(s => (filter === 'all' || (filter === 'over' ? s.over : bucket(s.status) === filter)) &&
       (!q || (s.name + ' ' + s.code + ' ' + s.dept + ' ' + s.desig).toLowerCase().indexOf(q) > -1))
     .sort((a, b) => filter === 'all' ? (order[bucket(a.status)] - order[bucket(b.status)]) || a.name.localeCompare(b.name) : a.name.localeCompare(b.name));
   $('list').innerHTML = rows.length ? rows.map(s => {
     let tm = '';
     if(s.first) tm = esc(s.first) + (s.last ? ' → ' + esc(s.last) + ' · ' + hm(s.minutes) : (d.date === d.today ? ' · still in' : ' → <span class="warn">no out</span>'));
+    let lu = '';
+    if(s.lunchOut) lu = '<span class="lunch' + (s.over ? ' over' : '') + '">🍽 ' + esc(s.lunchOut) + ' → ' + esc(s.lunchIn) + ' · ' + s.breakMin + ' min' + (s.over ? ' (+' + (s.breakMin - (d.lunchAllowed || 40)) + ' over)' : '') + (s.breaks > 1 ? ' · ' + s.breaks + ' breaks' : '') + '</span>';
+    else if(s.breakMin) lu = '<span class="lunch' + (s.over ? ' over' : '') + '">🍽 ' + s.breakMin + ' min</span>';
+    else if(s.first && s.last && s.status === 'Present') lu = '<span class="lunch">No lunch punch</span>';
     return '<div class="person" data-staff="' + esc(s.code) + '"><div class="l"><b>' + esc(s.name) + (s.isManager ? ' ★' : '') + '</b><small>' + esc(s.code) +
-      (s.dept ? ' · ' + esc(s.dept) : '') + (s.desig ? ' · ' + esc(s.desig) : '') + '</small></div>' +
+      (s.dept ? ' · ' + esc(s.dept) : '') + (s.desig ? ' · ' + esc(s.desig) : '') + '</small>' + lu + '</div>' +
       '<div class="r">' + chipFor(s.status, s.leaveType) + '<span class="tm">' + tm + '</span></div></div>';
   }).join('') : '<div class="empty">No staff match.</div>';
 }
@@ -273,7 +281,8 @@ function dayRow(c){
   let mid, right = '';
   if(c.status === 'Present'){
     mid = esc(p[0]) + ' → ' + (p.length > 1 ? esc(p[p.length-1]) : (c.date === todayStr ? '<span class="chip green">still in</span>' : '<span class="warn">no out punch</span>'));
-    right = p.length > 1 ? hm(toMin(p[p.length-1]) - toMin(p[0])) : '—';
+    right = c.net != null ? hm(c.net) : (p.length > 1 ? hm(toMin(p[p.length-1]) - toMin(p[0])) : '—');
+    if(c.lunchOut) mid += '<span class="lunch' + (c.over ? ' over' : '') + '">🍽 ' + esc(c.lunchOut) + ' → ' + esc(c.lunchIn) + ' · ' + c.breakMin + ' min' + (c.over ? ' ⚠' : '') + '</span>';
   } else mid = chipFor(c.status, c.leaveType);
   return '<div class="day">' + left + '<div class="t">' + mid + '</div><div class="h">' + right + '</div></div>';
 }
@@ -288,7 +297,9 @@ function renderDetail(d){
   $('mLbl').textContent = MON[m-1] + ' ' + y;
   $('mNext').disabled = d.month >= d.today.slice(0,7);
   $('sPresent').textContent = d.summary.present; $('sAbsent').textContent = d.summary.absent; $('sLeave').textContent = d.summary.onLeave;
-  $('sHrs').textContent = Math.floor(d.summary.minutes/60) + 'h';
+  $('sHrs').textContent = Math.floor((d.summary.netMinutes || d.summary.minutes)/60) + 'h';
+  $('sLunch').textContent = d.summary.lunchDays ? Math.round(d.summary.lunchTotal / d.summary.lunchDays) + 'm' : '–';
+  $('lunchNote').innerHTML = d.summary.lunchOver ? '⚠ ' + d.summary.lunchOver + ' day(s) over the ' + (d.lunchAllowed || 40) + '-min lunch limit' : '';
   $('dList').innerHTML = d.calendar.length ? d.calendar.slice().reverse().map(dayRow).join('') : '<div class="empty">Nothing to show yet.</div>';
   $('dLeaves').innerHTML = d.leaves.length ? d.leaves.map(l => {
     const chip = l.status === 'Approved' ? 'green' : l.status === 'Pending' ? 'amber' : l.status === 'Rejected' ? 'red' : 'grey';

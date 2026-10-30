@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#3d2a18">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<title>MS Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--walnut:#3d2a18;--gold:#b8863b;--paper:#faf6ee;--ink:#2b2118;--mute:#7a6b5a;--line:#e6dcc8;--ok:#2f7d4f;--bad:#a8372c;--warn:#a06a00;--blue:#2a5d9f;--card:#fff}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:Inter,system-ui,sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;padding-bottom:76px}
+header{background:var(--walnut);color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:5}
+header h1{font-family:'Cormorant Garamond',serif;font-size:22px;margin:0;color:#f0d9a8}
+header button{background:none;border:1px solid #8a6b40;color:#f0d9a8;border-radius:8px;padding:6px 10px;font-size:13px}
+main{max-width:560px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+label{display:block;font-size:13px;color:var(--mute);margin:10px 0 4px}
+input,select,textarea{width:100%;padding:12px;font-size:16px;border:1px solid var(--line);border-radius:10px;background:#fff;font-family:inherit;color:var(--ink)}
+.btn{width:100%;margin-top:14px;padding:13px;font-size:16px;font-weight:600;border:0;border-radius:10px;background:var(--gold);color:#fff}
+.btn:disabled{opacity:.6}
+.btn.ghost{background:#fff;color:var(--walnut);border:1px solid var(--line)}
+.err{color:var(--bad);font-size:14px;margin-top:10px}
+.note{color:var(--mute);font-size:12px;margin-top:8px}
+.chk{display:flex;gap:8px;align-items:center;margin-top:12px;font-size:14px}.chk input{width:auto}
+.sub{color:var(--mute);font-size:13px}
+.nav{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.nav button{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 14px;font-size:16px;flex:none}
+.nav button:disabled{opacity:.4}
+.nav input{text-align:center;padding:9px}
+.nav b{flex:1;text-align:center;font-family:'Cormorant Garamond',serif;font-size:20px}
+.tiles{display:flex;gap:8px;margin-bottom:12px}
+.tiles div{flex:1;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 4px;text-align:center;font-size:11px;color:var(--mute)}
+.tiles b{display:block;font-size:20px;color:var(--ink)}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:8px}
+.chips button{flex:none;border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 12px;font-size:13px;color:var(--mute);font-weight:600}
+.chips button.on{background:var(--walnut);color:#f0d9a8;border-color:var(--walnut)}
+.sr{margin-bottom:10px}
+.person{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)}
+.person:last-child{border:0}
+.person .l{min-width:0}.person .l b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.person .l small{color:var(--mute);font-size:12px}
+.person .r{text-align:right;flex:none;font-size:12px;color:var(--mute)}
+.person .r .tm{display:block;margin-top:4px;color:var(--ink);font-size:13px}
+.chip{display:inline-block;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:600}
+.chip.red{background:#fbe6e3;color:var(--bad)}
+.chip.green{background:#e0f2e7;color:var(--ok)}
+.chip.blue{background:#e1ecf8;color:var(--blue)}
+.chip.amber{background:#fdf0d2;color:var(--warn)}
+.chip.grey{background:#eee7da;color:var(--mute)}
+.empty{text-align:center;color:var(--mute);padding:24px 0}
+.lv{padding:14px 0;border-bottom:1px solid var(--line);font-size:14px}
+.lv:last-child{border:0}
+.lv .row{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.lv .rs{color:var(--mute);font-size:13px;margin-top:4px}
+.lv input{margin-top:10px;padding:10px;font-size:15px}
+.acts{display:flex;gap:10px;margin-top:10px}
+.acts button{flex:1;padding:11px;border-radius:10px;border:0;font-size:15px;font-weight:600}
+.acts .ap{background:var(--ok);color:#fff}.acts .rj{background:#fff;color:var(--bad);border:1px solid var(--bad)}
+.acts button:disabled{opacity:.5}
+.day{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
+.day:last-child{border:0}
+.d{width:62px;flex:none}.d small{display:block;color:var(--mute)}
+.t{flex:1;text-align:center}
+.h{width:62px;text-align:right;color:var(--mute);flex:none;font-size:13px}
+.warn{color:var(--bad)}
+.back{background:none;border:0;color:var(--gold);font-weight:600;font-size:15px;padding:0 0 10px}
+.call{display:inline-block;margin-top:8px;padding:9px 16px;border-radius:10px;background:var(--walnut);color:#f0d9a8;text-decoration:none;font-weight:600;font-size:14px}
+.tabs{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);display:flex;z-index:6;padding-bottom:env(safe-area-inset-bottom)}
+.tabs button{flex:1;border:0;background:none;padding:14px 0;font-size:14px;font-weight:600;color:var(--mute)}
+.tabs button.on{color:var(--walnut);box-shadow:inset 0 3px 0 var(--gold)}
+.badge{display:inline-block;min-width:20px;padding:1px 6px;margin-left:6px;border-radius:999px;background:var(--bad);color:#fff;font-size:12px}
+.hidden{display:none !important}
+</style>
+</head>
+<body>
+<header><h1>MS Manager</h1><button id="out" class="hidden">Sign out</button></header>
+<main>
+  <section id="setup" class="card hidden">
+    <b>One-time setup</b>
+    <label>Attendance service URL</label>
+    <input id="urlIn" placeholder="https://script.google.com/macros/s/.../exec">
+    <button class="btn" id="urlSave">Save</button>
+  </section>
+
+  <section id="login" class="card hidden">
+    <label>Manager staff code</label>
+    <input id="code" autocapitalize="characters" autocomplete="username" placeholder="e.g. MSI002">
+    <label>PIN</label>
+    <input id="pin" type="password" inputmode="numeric" autocomplete="current-password" placeholder="Your PIN">
+    <div class="chk"><input type="checkbox" id="keep" checked><span>Keep me signed in on this phone</span></div>
+    <button class="btn" id="go">Sign in</button>
+    <div class="err" id="loginErr"></div>
+    <div class="note">Only staff marked as Manager / Admin in HRMS can sign in here.</div>
+  </section>
+
+  <section id="view" class="hidden">
+    <!-- ===== Today tab ===== -->
+    <div id="pane-today">
+      <div class="nav">
+        <button id="dPrev">‹</button>
+        <input type="date" id="dateIn">
+        <button id="dNext">›</button>
+      </div>
+      <div class="tiles">
+        <div><b id="cPresent">0</b>Present</div>
+        <div><b id="cAbsent">0</b>Absent</div>
+        <div><b id="cLeave">0</b>On leave</div>
+        <div><b id="cNot">0</b>Not in</div>
+        <div><b id="cOff">0</b>Off</div>
+      </div>
+      <div class="chips" id="chips"></div>
+      <input class="sr" id="search" placeholder="Search name, code or department" autocomplete="off">
+      <div class="card" id="list"></div>
+    </div>
+
+    <!-- ===== Leaves tab ===== -->
+    <div id="pane-leaves" class="hidden">
+      <div class="card"><b>Waiting for your decision</b><div id="pendList"></div></div>
+      <div class="card"><b>Recently decided</b><div id="recList"></div></div>
+      <div class="err" id="lvErr"></div>
+    </div>
+
+    <!-- ===== One staff member ===== -->
+    <div id="pane-detail" class="hidden">
+      <button class="back" id="back">‹ Back</button>
+      <div class="card">
+        <b id="dName" style="font-family:'Cormorant Garamond',serif;font-size:24px"></b>
+        <div class="sub" id="dInfo"></div>
+        <a class="call hidden" id="dCall">📞 Call</a>
+      </div>
+      <div class="nav"><button id="mPrev">‹</button><b id="mLbl"></b><button id="mNext">›</button></div>
+      <div class="tiles">
+        <div><b id="sPresent">0</b>Present</div>
+        <div><b id="sAbsent">0</b>Absent</div>
+        <div><b id="sLeave">0</b>On leave</div>
+        <div><b id="sHrs">0h</b>Hours</div>
+      </div>
+      <div class="card" id="dList"></div>
+      <div class="card"><b>Leave requests</b><div id="dLeaves"></div></div>
+    </div>
+
+    <div class="note" id="upd" style="text-align:center"></div>
+    <button class="btn ghost" id="refresh">Refresh now</button>
+  </section>
+</main>
+<nav class="tabs hidden" id="tabs">
+  <button id="tab-today" class="on">Staff today</button>
+  <button id="tab-leaves">Leave requests<span class="badge hidden" id="badge">0</span></button>
+</nav>
+
+<script>
+// ===== Apps Script Web App URL (leave blank to enter it on first run) =====
+const SERVICE_URL = 'https://script.google.com/macros/s/AKfycbyGWnUbdocBmLrRAjzybXd9kspYfT2CV_gSHvUK5iRMdmsXUN31CNniamFifcb9G38R2A/exec';
+
+const LS = {
+  get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
+  set(k,v){ try{ localStorage.setItem(k,v); }catch(e){} },
+  del(k){ try{ localStorage.removeItem(k); }catch(e){} }
+};
+const $ = id => document.getElementById(id);
+const MON = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+let session = null, tab = 'today', date = null, data = null, filter = 'all', query = '', detail = null, dmonth = null, busy = false;
+
+function url(){ return SERVICE_URL || LS.get('svcUrl') || ''; }
+function showMain(id){
+  ['setup','login','view'].forEach(s => $(s).classList.toggle('hidden', s !== id));
+  $('out').classList.toggle('hidden', id !== 'view');
+  $('tabs').classList.toggle('hidden', id !== 'view');
+}
+function setTab(t){
+  tab = t; detail = null;
+  $('pane-today').classList.toggle('hidden', t !== 'today');
+  $('pane-leaves').classList.toggle('hidden', t !== 'leaves');
+  $('pane-detail').classList.add('hidden');
+  $('tab-today').classList.toggle('on', t === 'today');
+  $('tab-leaves').classList.toggle('on', t === 'leaves');
+  window.scrollTo(0, 0);
+}
+function hm(mins){ return Math.floor(mins/60) + 'h ' + String(mins%60).padStart(2,'0') + 'm'; }
+function toMin(t){ const [h,m] = t.split(':').map(Number); return h*60 + m; }
+function addMonth(ym, d){ let [y,m] = ym.split('-').map(Number); m += d; while(m>12){m-=12;y++;} while(m<1){m+=12;y--;} return y + '-' + String(m).padStart(2,'0'); }
+function addDays(s, n){ const d = new Date(s + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0,10); }
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function dmy(s){ const d = new Date(s + 'T00:00:00Z'); return d.getUTCDate() + ' ' + MON[d.getUTCMonth()].slice(0,3); }
+function longDate(s){ const d = new Date(s + 'T00:00:00Z'); return DOW[d.getUTCDay()] + ', ' + d.getUTCDate() + ' ' + MON[d.getUTCMonth()] + ' ' + d.getUTCFullYear(); }
+
+async function api(body){
+  const res = await fetch(url(), {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body: JSON.stringify(Object.assign({code: session.code, pin: session.pin}, body))});
+  return res.json();
+}
+function authFail(d){
+  if(d.locked || d.notManager || /Wrong|Enter/.test(d.error || '')){ signOut(true); $('loginErr').textContent = d.error; return true; }
+  return false;
+}
+
+/* ---------- status helpers ---------- */
+function bucket(s){
+  if(s === 'Present') return 'present';
+  if(s === 'Absent') return 'absent';
+  if(s === 'On leave' || s === 'Leave pending') return 'leave';
+  if(s === 'Weekly off' || s === 'Holiday') return 'off';
+  return 'notin';
+}
+function chipFor(s, leaveType){
+  const label = s === 'Absent' ? 'Absent' : s === 'On leave' ? 'On leave · ' + leaveType : s === 'Leave pending' ? 'Leave pending' : s;
+  const cls = {present:'green', absent:'red', leave: s === 'Leave pending' ? 'amber' : 'blue', off:'grey', notin:'grey'}[bucket(s)];
+  return '<span class="chip ' + cls + '">' + esc(label) + '</span>';
+}
+
+/* ---------- Today tab ---------- */
+const FILTERS = [['all','All'],['present','Present'],['absent','Absent'],['leave','On leave'],['notin','Not in'],['off','Off']];
+function renderToday(){
+  const d = data; if(!d) return;
+  $('dateIn').value = d.date; $('dateIn').max = d.today;
+  $('dNext').disabled = d.date >= d.today;
+  $('cPresent').textContent = d.counts.present; $('cAbsent').textContent = d.counts.absent;
+  $('cLeave').textContent = d.counts.onLeave; $('cNot').textContent = d.counts.notIn; $('cOff').textContent = d.counts.off;
+
+  const cnt = {all: d.staff.length, present:0, absent:0, leave:0, notin:0, off:0};
+  d.staff.forEach(s => cnt[bucket(s.status)]++);
+  $('chips').innerHTML = FILTERS.map(f => '<button data-f="' + f[0] + '" class="' + (filter === f[0] ? 'on' : '') + '">' + f[1] + ' ' + cnt[f[0]] + '</button>').join('');
+
+  const q = query.trim().toLowerCase();
+  const order = {absent:0, notin:1, present:2, leave:3, off:4};
+  const rows = d.staff.filter(s => (filter === 'all' || bucket(s.status) === filter) &&
+      (!q || (s.name + ' ' + s.code + ' ' + s.dept + ' ' + s.desig).toLowerCase().indexOf(q) > -1))
+    .sort((a, b) => filter === 'all' ? (order[bucket(a.status)] - order[bucket(b.status)]) || a.name.localeCompare(b.name) : a.name.localeCompare(b.name));
+  $('list').innerHTML = rows.length ? rows.map(s => {
+    let tm = '';
+    if(s.first) tm = esc(s.first) + (s.last ? ' → ' + esc(s.last) + ' · ' + hm(s.minutes) : (d.date === d.today ? ' · still in' : ' → <span class="warn">no out</span>'));
+    return '<div class="person" data-staff="' + esc(s.code) + '"><div class="l"><b>' + esc(s.name) + (s.isManager ? ' ★' : '') + '</b><small>' + esc(s.code) +
+      (s.dept ? ' · ' + esc(s.dept) : '') + (s.desig ? ' · ' + esc(s.desig) : '') + '</small></div>' +
+      '<div class="r">' + chipFor(s.status, s.leaveType) + '<span class="tm">' + tm + '</span></div></div>';
+  }).join('') : '<div class="empty">No staff match.</div>';
+}
+
+/* ---------- Leaves tab ---------- */
+function leaveHead(l){
+  const dates = l.from === l.to ? dmy(l.from) : dmy(l.from) + ' → ' + dmy(l.to);
+  return '<div class="row"><div><b>' + esc(l.name) + '</b><div class="rs">' + esc(l.code) + (l.dept ? ' · ' + esc(l.dept) : '') + (l.desig ? ' · ' + esc(l.desig) : '') + '</div></div>' +
+    '<span class="chip amber">' + esc(l.type) + '</span></div>' +
+    '<div class="rs"><b style="color:var(--ink)">' + dates + ' · ' + l.days + (l.days === 1 ? ' day' : ' days') + '</b></div>' +
+    '<div class="rs">' + esc(l.reason) + '</div>';
+}
+function renderLeaves(){
+  const d = data; if(!d) return;
+  const open = {}; document.querySelectorAll('#pendList input[data-rm]').forEach(i => { open[i.dataset.rm] = i.value; });   // keep typed remarks across refreshes
+  $('pendList').innerHTML = d.pending.length ? d.pending.map(l =>
+    '<div class="lv">' + leaveHead(l) + '<div class="rs">Applied ' + esc(l.appliedAt.slice(0,16).replace('T',' ')) + '</div>' +
+    '<input data-rm="' + esc(l.id) + '" placeholder="Remark (optional)" maxlength="200" value="' + esc(open[l.id] || '') + '">' +
+    '<div class="acts"><button class="ap" data-act="Approved" data-id="' + esc(l.id) + '">Approve</button><button class="rj" data-act="Rejected" data-id="' + esc(l.id) + '">Reject</button></div></div>'
+  ).join('') : '<div class="empty">No pending requests 🎉</div>';
+  $('recList').innerHTML = d.recent.length ? d.recent.map(l =>
+    '<div class="lv"><div class="row"><div><b>' + esc(l.name) + '</b><div class="rs">' + esc(l.code) + ' · ' + esc(l.type) + ' · ' + (l.from === l.to ? dmy(l.from) : dmy(l.from) + ' → ' + dmy(l.to)) + '</div></div>' +
+    '<span class="chip ' + (l.status === 'Approved' ? 'green' : 'red') + '">' + esc(l.status) + '</span></div>' +
+    '<div class="rs">By ' + esc(l.decidedBy) + (l.remark ? ' — ' + esc(l.remark) : '') + '</div></div>'
+  ).join('') : '<div class="empty">Nothing yet.</div>';
+  const b = $('badge'); b.textContent = d.pending.length; b.classList.toggle('hidden', !d.pending.length);
+}
+
+/* ---------- one staff member ---------- */
+let todayStr = '';
+function dayRow(c){
+  const dt = new Date(c.date + 'T00:00:00Z');
+  const left = '<div class="d"><b>' + dt.getUTCDate() + ' ' + MON[dt.getUTCMonth()].slice(0,3) + '</b><small>' + DOW[dt.getUTCDay()] + '</small></div>';
+  const p = c.punches || [];
+  let mid, right = '';
+  if(c.status === 'Present'){
+    mid = esc(p[0]) + ' → ' + (p.length > 1 ? esc(p[p.length-1]) : (c.date === todayStr ? '<span class="chip green">still in</span>' : '<span class="warn">no out punch</span>'));
+    right = p.length > 1 ? hm(toMin(p[p.length-1]) - toMin(p[0])) : '—';
+  } else mid = chipFor(c.status, c.leaveType);
+  return '<div class="day">' + left + '<div class="t">' + mid + '</div><div class="h">' + right + '</div></div>';
+}
+function renderDetail(d){
+  todayStr = d.today;
+  $('dName').textContent = d.staff.name;
+  $('dInfo').textContent = [d.staff.code, d.staff.desig, d.staff.dept, d.staff.branch].filter(Boolean).join(' · ');
+  const call = $('dCall');
+  if(d.staff.phone){ call.href = 'tel:' + d.staff.phone.replace(/[^\d+]/g,''); call.textContent = '📞 ' + d.staff.phone; call.classList.remove('hidden'); } else call.classList.add('hidden');
+  dmonth = d.month;
+  const [y,m] = d.month.split('-').map(Number);
+  $('mLbl').textContent = MON[m-1] + ' ' + y;
+  $('mNext').disabled = d.month >= d.today.slice(0,7);
+  $('sPresent').textContent = d.summary.present; $('sAbsent').textContent = d.summary.absent; $('sLeave').textContent = d.summary.onLeave;
+  $('sHrs').textContent = Math.floor(d.summary.minutes/60) + 'h';
+  $('dList').innerHTML = d.calendar.length ? d.calendar.slice().reverse().map(dayRow).join('') : '<div class="empty">Nothing to show yet.</div>';
+  $('dLeaves').innerHTML = d.leaves.length ? d.leaves.map(l => {
+    const chip = l.status === 'Approved' ? 'green' : l.status === 'Pending' ? 'amber' : l.status === 'Rejected' ? 'red' : 'grey';
+    return '<div class="lv"><div class="row"><b>' + (l.from === l.to ? dmy(l.from) : dmy(l.from) + ' → ' + dmy(l.to)) + ' · ' + l.days + 'd</b><span class="chip ' + chip + '">' + esc(l.status) + '</span></div>' +
+      '<div class="rs">' + esc(l.type) + ' — ' + esc(l.reason) + '</div></div>';
+  }).join('') : '<div class="empty">None.</div>';
+}
+async function openDetail(code, month){
+  detail = code;
+  $('pane-today').classList.add('hidden'); $('pane-leaves').classList.add('hidden'); $('pane-detail').classList.remove('hidden');
+  window.scrollTo(0, 0);
+  await loadDetail(month);
+}
+async function loadDetail(month){
+  if(!detail) return;
+  try{
+    const d = await api({action:'managerStaff', target: detail, month: month || dmonth || undefined});
+    if(!d.ok){ if(authFail(d)) return; $('upd').textContent = d.error || 'Could not load'; return; }
+    renderDetail(d);
+  }catch(e){ $('upd').textContent = 'Can\'t reach the server.'; }
+}
+
+/* ---------- loading ---------- */
+async function load(){
+  if(detail){ return loadDetail(); }
+  $('refresh').disabled = true;
+  try{
+    const d = await api({action:'managerView', date: date || undefined});
+    if(!d.ok){ if(authFail(d)) return; throw new Error(d.error || 'Server error'); }
+    data = d; date = d.date;
+    LS.set('mgr_cache', JSON.stringify({at: new Date().toLocaleString(), d}));
+    renderToday(); renderLeaves();
+    $('upd').textContent = 'Updated ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) + ' · refreshes automatically';
+    showMain('view');
+  }catch(e){
+    const c = LS.get('mgr_cache');
+    if(!data && c){ try{ const o = JSON.parse(c); data = o.d; date = o.d.date; renderToday(); renderLeaves(); showMain('view'); $('upd').textContent = 'Offline — showing data saved on ' + o.at; }catch(_){} }
+    else if(!data){ showMain('view'); $('list').innerHTML = '<div class="empty">Can\'t reach the server. Check your internet and tap Refresh.</div>'; }
+    else $('upd').textContent = 'Offline — showing the last loaded data.';
+  }finally{ $('refresh').disabled = false; }
+}
+function signOut(keepMsg){
+  LS.del('session'); LS.del('mgr_cache');
+  session = null; data = null; date = null; detail = null; $('pin').value = '';
+  if(keepMsg !== true) $('loginErr').textContent = '';
+  showMain('login');
+}
+
+/* ---------- events ---------- */
+$('go').onclick = async ()=>{
+  const code = $('code').value.trim(), pin = $('pin').value.trim();
+  if(!code || !pin){ $('loginErr').textContent = 'Enter your staff code and PIN.'; return; }
+  $('go').disabled = true; $('loginErr').textContent = '';
+  session = {code, pin}; date = null; data = null;
+  try{
+    const d = await api({action:'managerView'});
+    if(!d.ok){ $('loginErr').textContent = d.error || 'Could not sign in.'; session = null; }
+    else {
+      if($('keep').checked) LS.set('session', JSON.stringify(session));
+      data = d; date = d.date; setTab('today'); renderToday(); renderLeaves(); showMain('view');
+      $('upd').textContent = 'Updated ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) + ' · refreshes automatically';
+    }
+  }catch(e){ $('loginErr').textContent = 'Can\'t reach the server. Check your internet.'; session = null; }
+  $('go').disabled = false;
+};
+$('pin').addEventListener('keydown', e => { if(e.key === 'Enter') $('go').click(); });
+$('out').onclick = () => signOut();
+$('refresh').onclick = load;
+$('tab-today').onclick = () => { setTab('today'); };
+$('tab-leaves').onclick = () => { setTab('leaves'); };
+$('dPrev').onclick = () => { date = addDays(date, -1); load(); };
+$('dNext').onclick = () => { if(date < data.today) { date = addDays(date, 1); load(); } };
+$('dateIn').onchange = () => { if($('dateIn').value){ date = $('dateIn').value; load(); } };
+$('chips').addEventListener('click', e => { const b = e.target.closest('[data-f]'); if(b){ filter = b.dataset.f; renderToday(); } });
+$('search').addEventListener('input', e => { query = e.target.value; renderToday(); });
+$('list').addEventListener('click', e => { const p = e.target.closest('[data-staff]'); if(p) openDetail(p.dataset.staff); });
+$('back').onclick = () => { detail = null; dmonth = null; setTab(tab); load(); };
+$('mPrev').onclick = () => loadDetail(addMonth(dmonth, -1));
+$('mNext').onclick = () => loadDetail(addMonth(dmonth, 1));
+$('pendList').addEventListener('click', async e => {
+  const b = e.target.closest('[data-act]'); if(!b || busy) return;
+  busy = true;
+  const box = $('pendList').querySelector('input[data-rm="' + b.dataset.id + '"]');
+  document.querySelectorAll('#pendList .acts button').forEach(x => x.disabled = true);
+  $('lvErr').textContent = '';
+  try{
+    const r = await api({action:'decideLeave', id: b.dataset.id, decision: b.dataset.act, remark: box ? box.value : ''});
+    if(!r.ok){ $('lvErr').textContent = r.error || 'Could not save.'; }
+  }catch(_){ $('lvErr').textContent = 'Can\'t reach the server. Nothing was changed — try again.'; }
+  busy = false; load();
+});
+$('urlSave').onclick = ()=>{ const v = $('urlIn').value.trim(); if(/^https:\/\/script\.google\.com\//.test(v)){ LS.set('svcUrl', v); start(); } else alert('Paste the full Web App URL (starts with https://script.google.com/)'); };
+
+function start(){
+  if(!url()){ showMain('setup'); return; }
+  const s = LS.get('session');
+  if(s){ try{ session = JSON.parse(s); load(); return; }catch(e){} }
+  showMain('login');
+}
+function viewOpen(){
+  const a = document.activeElement;
+  return session && !$('view').classList.contains('hidden') && !document.hidden && !busy &&
+    !(a && (a.tagName === 'INPUT') && a.id !== 'dateIn' && a.value);   // don't refresh while a remark is being typed
+}
+setInterval(()=>{ if(viewOpen()) load(); }, 120000);
+document.addEventListener('visibilitychange', ()=>{ if(viewOpen()) load(); });
+window.addEventListener('online', ()=>{ if(viewOpen()) load(); });
+if('serviceWorker' in navigator) navigator.serviceWorker.register('service-worker.js').catch(()=>{});
+start();
+</script>
+</body>
+</html>

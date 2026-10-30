@@ -4,6 +4,9 @@ on:
   workflow_dispatch:        # lets you press "Run workflow" manually
   push:
     branches: [main, master]
+    paths-ignore:
+      - 'manager/**'
+      - '.github/workflows/build-manager-apk.yml'
 
 jobs:
   build:

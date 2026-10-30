@@ -1,0 +1,67 @@
+name: Build Manager APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+    paths:
+      - 'manager/**'
+      - '.github/workflows/build-manager-apk.yml'
+      - 'signing/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Prepare web files
+        run: |
+          mkdir www
+          cp manager/index.html manager/manifest.json manager/service-worker.js manager/icon-192.png manager/icon-512.png www/
+
+      - name: Create Android project (Capacitor)
+        run: |
+          npm init -y
+          npm install @capacitor/core@7 @capacitor/cli@7 @capacitor/android@7
+          npx cap init "MS Manager" com.msgold.managerattendance --web-dir=www
+          npx cap add android
+
+      - name: Use our app icon
+        run: |
+          sudo apt-get install -y imagemagick >/dev/null
+          RES=android/app/src/main/res
+          rm -rf $RES/mipmap-anydpi-v26
+          for d in mdpi:48 hdpi:72 xhdpi:96 xxhdpi:144 xxxhdpi:192; do
+            dir=${d%%:*}; size=${d##*:}
+            for n in ic_launcher ic_launcher_round ic_launcher_foreground; do
+              convert manager/icon-512.png -resize ${size}x${size} $RES/mipmap-$dir/$n.png
+            done
+          done
+
+      - name: Sync web files into the app
+        run: npx cap sync android
+
+      - name: Use the fixed signing key (so updates install over old versions)
+        run: |
+          mkdir -p ~/.android
+          cp signing/debug.keystore ~/.android/debug.keystore
+
+      - name: Build APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: MS-Manager-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk

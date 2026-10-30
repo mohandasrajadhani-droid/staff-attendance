@@ -1,5 +1,5 @@
 // App-shell cache only. Attendance data is never cached here (the app keeps its own last-seen copy).
-const CACHE = 'ms-staff-v1';
+const CACHE = 'ms-staff-v2';
 const SHELL = ['./index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {

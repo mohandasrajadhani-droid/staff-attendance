@@ -9,19 +9,22 @@
 <title>MS Staff Attendance</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-:root{--walnut:#3d2a18;--gold:#b8863b;--paper:#faf6ee;--ink:#2b2118;--mute:#7a6b5a;--line:#e6dcc8;--ok:#2f7d4f;--bad:#a8372c;--card:#fff}
+:root{--walnut:#3d2a18;--gold:#b8863b;--paper:#faf6ee;--ink:#2b2118;--mute:#7a6b5a;--line:#e6dcc8;--ok:#2f7d4f;--bad:#a8372c;--warn:#a06a00;--card:#fff}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{margin:0;font-family:Inter,system-ui,sans-serif;background:var(--paper);color:var(--ink);min-height:100vh}
-header{background:var(--walnut);color:#fff;padding:14px 16px calc(14px);display:flex;align-items:center;justify-content:space-between}
+body{margin:0;font-family:Inter,system-ui,sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;padding-bottom:76px}
+header{background:var(--walnut);color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:5}
 header h1{font-family:'Cormorant Garamond',serif;font-size:22px;margin:0;color:#f0d9a8}
 header button{background:none;border:1px solid #8a6b40;color:#f0d9a8;border-radius:8px;padding:6px 10px;font-size:13px}
 main{max-width:520px;margin:0 auto;padding:16px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
 label{display:block;font-size:13px;color:var(--mute);margin:10px 0 4px}
-input{width:100%;padding:12px;font-size:16px;border:1px solid var(--line);border-radius:10px;background:#fff}
+input,select,textarea{width:100%;padding:12px;font-size:16px;border:1px solid var(--line);border-radius:10px;background:#fff;font-family:inherit;color:var(--ink)}
+textarea{min-height:76px;resize:vertical}
 .btn{width:100%;margin-top:14px;padding:13px;font-size:16px;font-weight:600;border:0;border-radius:10px;background:var(--gold);color:#fff}
 .btn:disabled{opacity:.6}
+.btn.ghost{background:#fff;color:var(--walnut);border:1px solid var(--line)}
 .err{color:var(--bad);font-size:14px;margin-top:10px}
+.okmsg{color:var(--ok);font-size:14px;margin-top:10px}
 .note{color:var(--mute);font-size:12px;margin-top:8px}
 .chk{display:flex;gap:8px;align-items:center;margin-top:12px;font-size:14px}.chk input{width:auto}
 .hello{font-family:'Cormorant Garamond',serif;font-size:24px;margin:0}
@@ -32,25 +35,40 @@ input{width:100%;padding:12px;font-size:16px;border:1px solid var(--line);border
 .today span{font-size:12px;color:var(--mute)}
 .nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .nav button{background:#fff;border:1px solid var(--line);border-radius:8px;padding:8px 14px;font-size:16px}
+.nav button:disabled{opacity:.4}
 .nav b{font-family:'Cormorant Garamond',serif;font-size:20px}
 .sum{display:flex;gap:8px;margin-bottom:12px}
-.sum div{flex:1;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center;font-size:12px;color:var(--mute)}
-.sum b{display:block;font-size:20px;color:var(--ink)}
-.day{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--line);font-size:14px}
+.sum div{flex:1;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 4px;text-align:center;font-size:11px;color:var(--mute)}
+.sum b{display:block;font-size:19px;color:var(--ink)}
+.day{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:11px 0;border-bottom:1px solid var(--line);font-size:14px}
 .day:last-child{border:0}
-.d{width:78px}.d small{display:block;color:var(--mute)}
+.d{width:62px;flex:none}.d small{display:block;color:var(--mute)}
 .t{flex:1;text-align:center}
-.h{width:62px;text-align:right;color:var(--mute)}
+.h{width:62px;text-align:right;color:var(--mute);flex:none;font-size:13px}
 .warn{color:var(--bad)}
+.chip{display:inline-block;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:600}
+.chip.red{background:#fbe6e3;color:var(--bad)}
+.chip.green{background:#e0f2e7;color:var(--ok)}
+.chip.amber{background:#fdf0d2;color:var(--warn)}
+.chip.grey{background:#eee7da;color:var(--mute)}
+.lnk{background:none;border:0;color:var(--gold);font-weight:600;font-size:12px;padding:2px 0;display:block;margin:2px auto 0}
 .stale{background:#fff3d6;border:1px solid #e8cf93;border-radius:10px;padding:8px 12px;font-size:12px;margin-bottom:12px}
 .empty{text-align:center;color:var(--mute);padding:24px 0}
-.hidden{display:none}
+.lv{padding:12px 0;border-bottom:1px solid var(--line);font-size:14px}
+.lv:last-child{border:0}
+.lv .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.lv .rs{color:var(--mute);font-size:13px;margin-top:4px}
+.lv button{margin-top:8px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:13px;color:var(--bad)}
+.two{display:flex;gap:10px}.two>div{flex:1}
+.tabs{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);display:flex;z-index:6;padding-bottom:env(safe-area-inset-bottom)}
+.tabs button{flex:1;border:0;background:none;padding:14px 0;font-size:14px;font-weight:600;color:var(--mute)}
+.tabs button.on{color:var(--walnut);box-shadow:inset 0 3px 0 var(--gold)}
+.hidden{display:none !important}
 </style>
 </head>
 <body>
 <header><h1>MS Staff Attendance</h1><button id="out" class="hidden">Sign out</button></header>
 <main>
-  <!-- setup (only when URL below is blank) -->
   <section id="setup" class="card hidden">
     <b>One-time setup</b>
     <label>Attendance service URL</label>
@@ -70,31 +88,62 @@ input{width:100%;padding:12px;font-size:16px;border:1px solid var(--line);border
   </section>
 
   <section id="view" class="hidden">
-    <div class="card">
-      <p class="hello" id="hello"></p>
-      <div class="sub" id="todayDate"></div>
-      <div class="today">
-        <div><span>First punch</span><b id="tIn">--:--</b></div>
-        <div><span>Last punch</span><b id="tOut">--:--</b></div>
-        <div><span>Hours</span><b id="tHrs">--</b></div>
+    <!-- ===== Attendance tab ===== -->
+    <div id="pane-att">
+      <div class="card">
+        <p class="hello" id="hello"></p>
+        <div class="sub" id="todayDate"></div>
+        <div class="today">
+          <div><span>First punch</span><b id="tIn">--:--</b></div>
+          <div><span>Last punch</span><b id="tOut">--:--</b></div>
+          <div><span>Hours</span><b id="tHrs">--</b></div>
+        </div>
+      </div>
+      <div class="stale hidden" id="stale"></div>
+      <div class="nav"><button id="prev">‹</button><b id="monthLbl"></b><button id="next">›</button></div>
+      <div class="sum">
+        <div><b id="sPresent">0</b>Present</div>
+        <div><b id="sLeave">0</b>Leave</div>
+        <div><b id="sOnLeave">0</b>Approved</div>
+        <div><b id="sHrs">0h</b>Hours</div>
+      </div>
+      <div class="card" id="list"></div>
+      <div class="note">"Leave" = a working day with no punch and no approved leave. Tap <b>Apply</b> on that day to send a leave request. Shows raw machine punches; final attendance for salary is decided by the office.</div>
+    </div>
+
+    <!-- ===== Leave tab ===== -->
+    <div id="pane-leave" class="hidden">
+      <div class="card">
+        <b>Apply for leave</b>
+        <label>Type</label>
+        <select id="lvType"></select>
+        <div class="two">
+          <div><label>From</label><input type="date" id="lvFrom"></div>
+          <div><label>To</label><input type="date" id="lvTo"></div>
+        </div>
+        <label>Reason</label>
+        <textarea id="lvReason" maxlength="300" placeholder="Short reason"></textarea>
+        <button class="btn" id="lvSend">Send request</button>
+        <div class="err" id="lvErr"></div>
+        <div class="okmsg" id="lvOk"></div>
+      </div>
+      <div class="card">
+        <b>My requests</b>
+        <div id="lvList"></div>
       </div>
     </div>
-    <div class="stale hidden" id="stale"></div>
-    <div class="nav"><button id="prev">‹</button><b id="monthLbl"></b><button id="next">›</button></div>
-    <div class="sum">
-      <div><b id="sDays">0</b>Days present</div>
-      <div><b id="sHrs">0h</b>Total hours</div>
-      <div><b id="sSingle">0</b>Single punch</div>
-    </div>
-    <div class="card" id="list"></div>
-    <div class="note">Shows raw machine punches. Final attendance for salary is decided by the office.</div>
+
     <div class="note" id="upd" style="text-align:center"></div>
-    <button class="btn" id="refresh">Refresh now</button>
+    <button class="btn ghost" id="refresh">Refresh now</button>
   </section>
 </main>
+<nav class="tabs hidden" id="tabs">
+  <button id="tab-att" class="on">Attendance</button>
+  <button id="tab-leave">Leave</button>
+</nav>
 
 <script>
-// ===== Set this once to your Apps Script Web App URL (or leave blank and enter it on first run) =====
+// ===== Apps Script Web App URL (leave blank to enter it on first run) =====
 const SERVICE_URL = 'https://script.google.com/macros/s/AKfycbyGWnUbdocBmLrRAjzybXd9kspYfT2CV_gSHvUK5iRMdmsXUN31CNniamFifcb9G38R2A/exec';
 
 const LS = {
@@ -105,29 +154,65 @@ const LS = {
 const $ = id => document.getElementById(id);
 const MON = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-let month = null, session = null;   // session = {code, pin}
+let month = null, session = null, tab = 'att', cancelArm = null;
 
 function url(){ return SERVICE_URL || LS.get('svcUrl') || ''; }
-function show(id){ ['setup','login','view'].forEach(s => $(s).classList.toggle('hidden', s !== id)); $('out').classList.toggle('hidden', id !== 'view'); }
-
+function showMain(id){
+  ['setup','login','view'].forEach(s => $(s).classList.toggle('hidden', s !== id));
+  $('out').classList.toggle('hidden', id !== 'view');
+  $('tabs').classList.toggle('hidden', id !== 'view');
+}
+function setTab(t){
+  tab = t;
+  $('pane-att').classList.toggle('hidden', t !== 'att');
+  $('pane-leave').classList.toggle('hidden', t !== 'leave');
+  $('tab-att').classList.toggle('on', t === 'att');
+  $('tab-leave').classList.toggle('on', t === 'leave');
+  window.scrollTo(0, 0);
+}
 function hm(mins){ return Math.floor(mins/60) + 'h ' + String(mins%60).padStart(2,'0') + 'm'; }
 function toMin(t){ const [h,m] = t.split(':').map(Number); return h*60 + m; }
 function addMonth(ym, d){ let [y,m] = ym.split('-').map(Number); m += d; while(m>12){m-=12;y++;} while(m<1){m+=12;y--;} return y + '-' + String(m).padStart(2,'0'); }
-function esc(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function addDays(s, n){ const d = new Date(s + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0,10); }
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function dmy(s){ const d = new Date(s + 'T00:00:00Z'); return d.getUTCDate() + ' ' + MON[d.getUTCMonth()].slice(0,3); }
 
-async function fetchData(){
+async function api(body){
   // text/plain avoids a CORS preflight, which Apps Script cannot answer
   const res = await fetch(url(), {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
-    body: JSON.stringify({action:'staffView', code: session.code, pin: session.pin, month: month})});
+    body: JSON.stringify(Object.assign({code: session.code, pin: session.pin}, body))});
   return res.json();
 }
 
-function render(d, stale){
+/* ---------- Attendance tab ---------- */
+function dayRow(c, today){
+  const dt = new Date(c.date + 'T00:00:00Z');
+  const left = '<div class="d"><b>' + dt.getUTCDate() + ' ' + MON[dt.getUTCMonth()].slice(0,3) + '</b><small>' + DOW[dt.getUTCDay()] + '</small></div>';
+  let mid = '', right = '';
+  const p = c.punches || [];
+  if(c.status === 'Present'){
+    mid = esc(p[0]) + ' → ' + (p.length > 1 ? esc(p[p.length-1]) : (c.date === today ? '<span class="chip green">still in</span>' : '<span class="warn">no out punch</span>'));
+    right = p.length > 1 ? hm(toMin(p[p.length-1]) - toMin(p[0])) : '—';
+  } else if(c.status === 'Absent'){
+    mid = '<span class="chip red">Leave</span><button class="lnk" data-apply="' + c.date + '">Apply for this day</button>';
+  } else if(c.status === 'On leave'){
+    mid = '<span class="chip green">On leave · ' + esc(c.leaveType) + '</span>';
+  } else if(c.status === 'Leave pending'){
+    mid = '<span class="chip amber">Applied · waiting approval</span>';
+  } else if(c.status === 'Weekly off' || c.status === 'Holiday'){
+    mid = '<span class="chip grey">' + esc(c.status) + '</span>';
+  } else {
+    mid = '<span class="chip grey">No punch yet</span>';
+  }
+  return '<div class="day">' + left + '<div class="t">' + mid + '</div><div class="h">' + right + '</div></div>';
+}
+
+function renderAtt(d, stale){
   month = d.month;
   $('hello').textContent = 'Hello, ' + (d.name || d.code);
-  const t = new Date(d.today + 'T00:00:00');
-  $('todayDate').textContent = DOW[t.getDay()] + ', ' + t.getDate() + ' ' + MON[t.getMonth()] + ' ' + t.getFullYear();
-  const td = d.days.find(x => x.date === d.today);
+  const t = new Date(d.today + 'T00:00:00Z');
+  $('todayDate').textContent = DOW[t.getUTCDay()] + ', ' + t.getUTCDate() + ' ' + MON[t.getUTCMonth()] + ' ' + t.getUTCFullYear();
+  const td = (d.days || []).find(x => x.date === d.today);
   if(td && td.punches.length){
     const p = td.punches;
     $('tIn').textContent = p[0];
@@ -139,31 +224,48 @@ function render(d, stale){
   $('monthLbl').textContent = MON[m-1] + ' ' + y;
   $('next').disabled = d.month >= d.today.slice(0,7);
 
-  let total = 0, single = 0;
-  const rows = d.days.slice().reverse().map(day=>{
-    const p = day.punches, dt = new Date(day.date + 'T00:00:00');
-    let hrs = '—';
-    if(p.length > 1){ const mn = toMin(p[p.length-1]) - toMin(p[0]); total += mn; hrs = hm(mn); }
-    else single++;
-    return '<div class="day"><div class="d"><b>' + dt.getDate() + ' ' + MON[dt.getMonth()].slice(0,3) + '</b><small>' + DOW[dt.getDay()] + '</small></div>' +
-      '<div class="t">' + esc(p[0]) + ' → ' + (p.length > 1 ? esc(p[p.length-1]) : '<span class="warn">no out punch</span>') + '</div>' +
-      '<div class="h">' + hrs + '</div></div>';
-  });
-  $('list').innerHTML = rows.length ? rows.join('') : '<div class="empty">No punches found for this month.</div>';
-  $('sDays').textContent = d.days.length;
-  $('sHrs').textContent = hm(total);
-  $('sSingle').textContent = single;
+  const cal = d.calendar || [];
+  const s = d.summary || {present:0, absent:0, onLeave:0, minutes:0};
+  $('sPresent').textContent = s.present;
+  $('sLeave').textContent = s.absent;
+  $('sOnLeave').textContent = s.onLeave;
+  $('sHrs').textContent = Math.floor(s.minutes/60) + 'h';
+  $('list').innerHTML = cal.length ? cal.slice().reverse().map(c => dayRow(c, d.today)).join('') : '<div class="empty">Nothing to show for this month yet.</div>';
 
   const st = $('stale');
   if(stale){ st.textContent = 'Offline — showing data saved on ' + stale; st.classList.remove('hidden'); } else st.classList.add('hidden');
+}
+
+/* ---------- Leave tab ---------- */
+function renderLeave(d){
+  const sel = $('lvType');
+  if(!sel.options.length){
+    (d.leaveTypes || ['Casual','Sick','Earned','Unpaid','Other']).forEach(t => { const o = document.createElement('option'); o.textContent = t; o.value = t; sel.appendChild(o); });
+  }
+  $('lvFrom').min = addDays(d.today, -31);
+  $('lvTo').min = addDays(d.today, -31);
+  const list = d.leaves || [];
+  $('lvList').innerHTML = list.length ? list.map(l => {
+    const chip = l.status === 'Approved' ? 'green' : l.status === 'Pending' ? 'amber' : l.status === 'Rejected' ? 'red' : 'grey';
+    const dates = l.from === l.to ? dmy(l.from) : dmy(l.from) + ' → ' + dmy(l.to);
+    return '<div class="lv"><div class="row"><b>' + dates + ' · ' + l.days + (l.days === 1 ? ' day' : ' days') + '</b><span class="chip ' + chip + '">' + esc(l.status) + '</span></div>' +
+      '<div class="rs">' + esc(l.type) + ' — ' + esc(l.reason) + '</div>' +
+      (l.remark ? '<div class="rs">Manager' + (l.decidedBy ? ' (' + esc(l.decidedBy) + ')' : '') + ': ' + esc(l.remark) + '</div>' : '') +
+      (l.status === 'Pending' ? '<button data-cancel="' + esc(l.id) + '">Cancel request</button>' : '') + '</div>';
+  }).join('') : '<div class="empty">No leave requests yet.</div>';
+}
+
+function render(d, stale){
+  renderAtt(d, stale);
+  renderLeave(d);
   $('upd').textContent = 'Updated ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) + ' · refreshes automatically';
-  show('view');
+  showMain('view');
 }
 
 async function load(){
   $('refresh').disabled = true;
   try{
-    const d = await fetchData();
+    const d = await api({action:'staffView', month: month});
     if(!d.ok){
       if(d.locked || /Wrong|Enter/.test(d.error || '')){ signOut(true); $('loginErr').textContent = d.error; return; }
       throw new Error(d.error || 'Server error');
@@ -173,29 +275,31 @@ async function load(){
   }catch(e){
     const c = LS.get('cache_' + month);
     if(c){ try{ const o = JSON.parse(c); render(o.d, o.at); }catch(_){ } }
-    else { show('view'); $('list').innerHTML = '<div class="empty">Can\'t reach the server. Check your internet and tap Refresh.</div>'; }
+    else { showMain('view'); $('list').innerHTML = '<div class="empty">Can\'t reach the server. Check your internet and tap Refresh.</div>'; }
   }finally{ $('refresh').disabled = false; }
 }
 
 function signOut(keepMsg){
   LS.del('session');
-  Object.keys(localStorage || {}).forEach(k => { if(k.indexOf('cache_') === 0) LS.del(k); });
-  session = null; $('pin').value = '';
+  try{ Object.keys(localStorage).forEach(k => { if(k.indexOf('cache_') === 0) LS.del(k); }); }catch(e){}
+  session = null; $('pin').value = ''; month = null;
   if(keepMsg !== true) $('loginErr').textContent = '';
-  show('login');
+  showMain('login');
 }
 
+/* ---------- events ---------- */
 $('go').onclick = async ()=>{
   const code = $('code').value.trim(), pin = $('pin').value.trim();
   if(!code || !pin){ $('loginErr').textContent = 'Enter your staff code and PIN.'; return; }
   $('go').disabled = true; $('loginErr').textContent = '';
   session = {code, pin}; month = null;
   try{
-    const d = await fetchData();
+    const d = await api({action:'staffView'});
     if(!d.ok){ $('loginErr').textContent = d.error || 'Could not sign in.'; session = null; }
     else {
       if($('keep').checked) LS.set('session', JSON.stringify(session));
-      month = d.month; LS.set('cache_' + d.month, JSON.stringify({at: new Date().toLocaleString(), d})); render(d, null);
+      LS.set('cache_' + d.month, JSON.stringify({at: new Date().toLocaleString(), d}));
+      setTab('att'); render(d, null);
     }
   }catch(e){ $('loginErr').textContent = 'Can\'t reach the server. Check your internet.'; session = null; }
   $('go').disabled = false;
@@ -205,17 +309,58 @@ $('out').onclick = () => signOut();
 $('refresh').onclick = load;
 $('prev').onclick = ()=>{ month = addMonth(month, -1); load(); };
 $('next').onclick = ()=>{ month = addMonth(month, 1); load(); };
+$('tab-att').onclick = () => setTab('att');
+$('tab-leave').onclick = () => setTab('leave');
 $('urlSave').onclick = ()=>{ const v = $('urlIn').value.trim(); if(/^https:\/\/script\.google\.com\//.test(v)){ LS.set('svcUrl', v); start(); } else alert('Paste the full Web App URL (starts with https://script.google.com/)'); };
 
+// "Apply for this day" on a leave row -> opens the form with that date filled in
+$('list').addEventListener('click', e => {
+  const b = e.target.closest('[data-apply]'); if(!b) return;
+  $('lvFrom').value = b.dataset.apply; $('lvTo').value = b.dataset.apply;
+  $('lvErr').textContent = ''; $('lvOk').textContent = '';
+  setTab('leave'); $('lvReason').focus();
+});
+// cancel a pending request (tap twice to confirm)
+$('lvList').addEventListener('click', async e => {
+  const b = e.target.closest('[data-cancel]'); if(!b) return;
+  if(cancelArm !== b.dataset.cancel){ cancelArm = b.dataset.cancel; b.textContent = 'Tap again to cancel'; return; }
+  b.disabled = true;
+  try{
+    const r = await api({action:'cancelLeave', id: b.dataset.cancel});
+    cancelArm = null;
+    if(!r.ok){ $('lvErr').textContent = r.error || 'Could not cancel.'; b.disabled = false; return; }
+    load();
+  }catch(_){ $('lvErr').textContent = 'Can\'t reach the server.'; b.disabled = false; }
+});
+$('lvFrom').addEventListener('change', () => { if(!$('lvTo').value || $('lvTo').value < $('lvFrom').value) $('lvTo').value = $('lvFrom').value; });
+$('lvSend').onclick = async ()=>{
+  $('lvErr').textContent = ''; $('lvOk').textContent = '';
+  const from = $('lvFrom').value, to = $('lvTo').value || from, reason = $('lvReason').value.trim();
+  if(!from){ $('lvErr').textContent = 'Choose the From date.'; return; }
+  if(!reason){ $('lvErr').textContent = 'Please write a short reason.'; return; }
+  $('lvSend').disabled = true;
+  try{
+    const r = await api({action:'applyLeave', type: $('lvType').value, from, to, reason});
+    if(!r.ok){ $('lvErr').textContent = r.error || 'Could not send.'; }
+    else {
+      $('lvOk').textContent = 'Request sent for ' + r.days + (r.days === 1 ? ' day' : ' days') + '. Your manager will approve or reject it.';
+      $('lvReason').value = ''; $('lvFrom').value = ''; $('lvTo').value = '';
+      load();
+    }
+  }catch(_){ $('lvErr').textContent = 'Can\'t reach the server. Check your internet and try again.'; }
+  $('lvSend').disabled = false;
+};
+
 function start(){
-  if(!url()){ show('setup'); $('setup').classList.remove('hidden'); $('login').classList.add('hidden'); return; }
+  if(!url()){ showMain('setup'); $('setup').classList.remove('hidden'); return; }
   const s = LS.get('session');
   if(s){ try{ session = JSON.parse(s); load(); return; }catch(e){} }
-  show('login');
+  showMain('login');
 }
-// auto-refresh: every 60 s while the app is open, and immediately when you come back to it
-function viewOpen(){ return session && !$('view').classList.contains('hidden') && !document.hidden && !$('refresh').disabled; }
-setInterval(()=>{ if(viewOpen()) load(); }, 60000);
+// auto-refresh: every 2 minutes while the app is open, and when you come back to it
+// (the office PC only uploads punches every 5 minutes, so refreshing faster would not show anything new)
+function viewOpen(){ return session && !$('view').classList.contains('hidden') && !document.hidden && !$('refresh').disabled && document.activeElement !== $('lvReason'); }
+setInterval(()=>{ if(viewOpen()) load(); }, 120000);
 document.addEventListener('visibilitychange', ()=>{ if(viewOpen()) load(); });
 window.addEventListener('online', ()=>{ if(viewOpen()) load(); });
 if('serviceWorker' in navigator) navigator.serviceWorker.register('service-worker.js').catch(()=>{});

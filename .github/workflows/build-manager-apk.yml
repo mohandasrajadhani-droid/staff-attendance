@@ -37,16 +37,22 @@ jobs:
           npx cap add android
 
       - name: Use our app icon
+        continue-on-error: true      # if this step ever fails the app is still built, just with the default icon
+        env:
+          ICON: manager/icon-512.png
         run: |
-          sudo apt-get install -y imagemagick >/dev/null
-          RES=android/app/src/main/res
-          rm -rf $RES/mipmap-anydpi-v26
-          for d in mdpi:48 hdpi:72 xhdpi:96 xxhdpi:144 xxxhdpi:192; do
-            dir=${d%%:*}; size=${d##*:}
-            for n in ic_launcher ic_launcher_round ic_launcher_foreground; do
-              convert manager/icon-512.png -resize ${size}x${size} $RES/mipmap-$dir/$n.png
-            done
-          done
+          npm install --no-save sharp
+          node -e "
+          const sharp = require('sharp'), fs = require('fs');
+          const RES = 'android/app/src/main/res';
+          fs.rmSync(RES + '/mipmap-anydpi-v26', {recursive: true, force: true});
+          const sizes = {mdpi: 48, hdpi: 72, xhdpi: 96, xxhdpi: 144, xxxhdpi: 192};
+          (async () => {
+            for (const [d, s] of Object.entries(sizes))
+              for (const n of ['ic_launcher', 'ic_launcher_round', 'ic_launcher_foreground'])
+                await sharp(process.env.ICON).resize(s, s).png().toFile(RES + '/mipmap-' + d + '/' + n + '.png');
+          })();
+          "
 
       - name: Sync web files into the app
         run: npx cap sync android

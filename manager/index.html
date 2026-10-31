@@ -95,6 +95,7 @@ input,select,textarea{width:100%;padding:12px;font-size:16px;border:1px solid va
 #pane-me .two{display:flex;gap:10px}#pane-me .two>div{flex:1}
 #pane-me .lv button{margin-top:8px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:13px;color:var(--bad)}
 .okmsg{color:var(--ok);font-size:14px;margin-top:10px}
+.quota{background:var(--paper);border-radius:10px;padding:8px 10px;font-size:13px;color:var(--mute);margin-top:8px}
 </style>
 </head>
 <body>
@@ -188,6 +189,7 @@ input,select,textarea{width:100%;padding:12px;font-size:16px;border:1px solid va
       <div class="card" id="meList"></div>
       <div class="card">
         <b>Apply for my leave</b>
+        <div id="meQuota"></div>
         <label>Type</label>
         <select id="meType"></select>
         <div class="two">
@@ -199,13 +201,13 @@ input,select,textarea{width:100%;padding:12px;font-size:16px;border:1px solid va
         <button class="btn" id="meSend">Send request</button>
         <div class="err" id="meErr"></div>
         <div class="okmsg" id="meOk"></div>
-        <div class="note">Another manager has to approve your own leave.</div>
+        <div class="note">Your leave goes to the other managers of your department.</div>
       </div>
       <div class="card"><b>My leave requests</b><div id="meLeaves"></div></div>
     </div>
 
     <div class="note" id="upd" style="text-align:center"></div>
-    <div class="note" style="text-align:center">Manager app v3.2 · includes my attendance &amp; leave</div>
+    <div class="note" style="text-align:center">Manager app v3.3 · leave allowance &amp; department routing</div>
     <button class="btn ghost" id="refresh">Refresh now</button>
   </section>
 </main>
@@ -310,10 +312,16 @@ function renderToday(){
 }
 
 /* ---------- Leaves tab ---------- */
+function quotaLine(d){
+  if(!d.quota) return '';
+  const m = Number((d.quotaMonth || d.today.slice(0,7)).split('-')[1]);
+  return '<div class="quota"><b>' + MON[m-1] + ' balance:</b> ' + d.quota.map(q => { const left = q.allowed - q.used; return esc(q.type) + ' ' + Math.max(left, 0) + ' of ' + q.allowed + ' left' + (left < 0 ? ' <span class="warn">(' + (-left) + ' over)</span>' : ''); }).join(' · ') + '</div>';
+}
 function leaveHead(l){
   const dates = l.from === l.to ? dmy(l.from) : dmy(l.from) + ' → ' + dmy(l.to);
   return '<div class="row"><div><b>' + esc(l.name) + '</b><div class="rs">' + esc(l.code) + (l.dept ? ' · ' + esc(l.dept) : '') + (l.desig ? ' · ' + esc(l.desig) : '') + '</div></div>' +
     '<span class="chip amber">' + esc(l.type) + '</span></div>' +
+    (l.over ? '<div class="rs warn"><b>⚠ Over the monthly allowance</b> — approve only if it will be unpaid or you allow the extra.</div>' : '') +
     '<div class="rs"><b style="color:var(--ink)">' + dates + ' · ' + l.days + (l.days === 1 ? ' day' : ' days') + '</b></div>' +
     '<div class="rs">' + esc(l.reason) + '</div>';
 }
@@ -423,7 +431,8 @@ function renderMe(d){
   const cal = d.calendar || [];
   $('meList').innerHTML = cal.length ? cal.slice().reverse().map(c => meDayRow(c, d.today)).join('') : '<div class="empty">Nothing to show for this month yet.</div>';
   const sel = $('meType');
-  if(!sel.options.length) (d.leaveTypes || ['Casual','Sick','Earned','Unpaid','Other']).forEach(t => { const o = document.createElement('option'); o.textContent = t; o.value = t; sel.appendChild(o); });
+  if(!sel.options.length) (d.leaveTypes || ['Leave','Sick','Casual','Unpaid']).forEach(t => { const o = document.createElement('option'); o.textContent = t; o.value = t; sel.appendChild(o); });
+  $('meQuota').innerHTML = quotaLine(d);
   $('meFrom').min = addDays(d.today, -31); $('meTo').min = addDays(d.today, -31);
   const list = d.leaves || [];
   $('meLeaves').innerHTML = list.length ? list.map(l => {
@@ -510,7 +519,7 @@ $('meSend').onclick = async () => {
   try{
     const r = await api({action:'applyLeave', type: $('meType').value, from, to, reason});
     if(!r.ok) $('meErr').textContent = r.error || 'Could not send.';
-    else { $('meOk').textContent = 'Request sent for ' + r.days + (r.days === 1 ? ' day' : ' days') + '.'; $('meReason').value = ''; $('meFrom').value = ''; $('meTo').value = ''; loadMe(); }
+    else { $('meOk').textContent = 'Request sent for ' + r.days + (r.days === 1 ? ' day' : ' days') + '.' + (r.over ? ' Note: this is over your monthly allowance.' : ''); $('meReason').value = ''; $('meFrom').value = ''; $('meTo').value = ''; loadMe(); }
   }catch(_){ $('meErr').textContent = 'Can\'t reach the server. Check your internet and try again.'; }
   $('meSend').disabled = false;
 };

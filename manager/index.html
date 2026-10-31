@@ -207,7 +207,7 @@ input,select,textarea{width:100%;padding:12px;font-size:16px;border:1px solid va
     </div>
 
     <div class="note" id="upd" style="text-align:center"></div>
-    <div class="note" style="text-align:center">Manager app v3.3 · leave allowance &amp; department routing</div>
+    <div class="note" style="text-align:center">Manager app v3.4 · 24-day pay basis</div>
     <button class="btn ghost" id="refresh">Refresh now</button>
   </section>
 </main>
@@ -315,7 +315,9 @@ function renderToday(){
 function quotaLine(d){
   if(!d.quota) return '';
   const m = Number((d.quotaMonth || d.today.slice(0,7)).split('-')[1]);
-  return '<div class="quota"><b>' + MON[m-1] + ' balance:</b> ' + d.quota.map(q => { const left = q.allowed - q.used; return esc(q.type) + ' ' + Math.max(left, 0) + ' of ' + q.allowed + ' left' + (left < 0 ? ' <span class="warn">(' + (-left) + ' over)</span>' : ''); }).join(' · ') + '</div>';
+  const p = d.pay;
+  const pay = p ? '<div>Full salary at <b>' + p.payDays + ' days present</b> · you have <b>' + p.present + '</b> so far (' + p.daysInMonth + '-day month, ' + p.leaveAllowed + ' days you can be away)</div>' : '';
+  return '<div class="quota"><b>' + MON[m-1] + ' leave left:</b> ' + d.quota.map(q => { const left = q.allowed - q.used; return esc(q.type) + ' ' + Math.max(left, 0) + ' of ' + q.allowed + (left < 0 ? ' <span class="warn">(' + (-left) + ' over)</span>' : ''); }).join(' · ') + pay + '</div>';
 }
 function leaveHead(l){
   const dates = l.from === l.to ? dmy(l.from) : dmy(l.from) + ' → ' + dmy(l.to);
@@ -431,7 +433,7 @@ function renderMe(d){
   const cal = d.calendar || [];
   $('meList').innerHTML = cal.length ? cal.slice().reverse().map(c => meDayRow(c, d.today)).join('') : '<div class="empty">Nothing to show for this month yet.</div>';
   const sel = $('meType');
-  if(!sel.options.length) (d.leaveTypes || ['Leave','Sick','Casual','Unpaid']).forEach(t => { const o = document.createElement('option'); o.textContent = t; o.value = t; sel.appendChild(o); });
+  if(!sel.options.length) (d.leaveTypes || ['Week off','Sick','Casual','Unpaid']).forEach(t => { const o = document.createElement('option'); o.textContent = t; o.value = t; sel.appendChild(o); });
   $('meQuota').innerHTML = quotaLine(d);
   $('meFrom').min = addDays(d.today, -31); $('meTo').min = addDays(d.today, -31);
   const list = d.leaves || [];

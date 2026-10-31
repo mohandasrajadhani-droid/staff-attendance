@@ -143,7 +143,7 @@ textarea{min-height:76px;resize:vertical}
     </div>
 
     <div class="note" id="upd" style="text-align:center"></div>
-    <div class="note" style="text-align:center">Staff app v3.2 · leave allowance</div>
+    <div class="note" style="text-align:center">Staff app v3.3 · 24-day pay basis</div>
     <button class="btn ghost" id="refresh">Refresh now</button>
   </section>
 </main>
@@ -253,13 +253,15 @@ function renderAtt(d, stale){
 function quotaLine(d){
   if(!d.quota) return '';
   const m = Number((d.quotaMonth || d.today.slice(0,7)).split('-')[1]);
-  return '<div class="quota"><b>' + MON[m-1] + ' balance:</b> ' + d.quota.map(q => { const left = q.allowed - q.used; return esc(q.type) + ' ' + Math.max(left, 0) + ' of ' + q.allowed + ' left' + (left < 0 ? ' <span class="warn">(' + (-left) + ' over)</span>' : ''); }).join(' · ') + '</div>';
+  const p = d.pay;
+  const pay = p ? '<div>Full salary at <b>' + p.payDays + ' days present</b> · you have <b>' + p.present + '</b> so far (' + p.daysInMonth + '-day month, ' + p.leaveAllowed + ' days you can be away)</div>' : '';
+  return '<div class="quota"><b>' + MON[m-1] + ' leave left:</b> ' + d.quota.map(q => { const left = q.allowed - q.used; return esc(q.type) + ' ' + Math.max(left, 0) + ' of ' + q.allowed + (left < 0 ? ' <span class="warn">(' + (-left) + ' over)</span>' : ''); }).join(' · ') + pay + '</div>';
 }
 function renderLeave(d){
   $('lvQuota').innerHTML = quotaLine(d);
   const sel = $('lvType');
   if(!sel.options.length){
-    (d.leaveTypes || ['Leave','Sick','Casual','Unpaid']).forEach(t => { const o = document.createElement('option'); o.textContent = t; o.value = t; sel.appendChild(o); });
+    (d.leaveTypes || ['Week off','Sick','Casual','Unpaid']).forEach(t => { const o = document.createElement('option'); o.textContent = t; o.value = t; sel.appendChild(o); });
   }
   $('lvFrom').min = addDays(d.today, -31);
   $('lvTo').min = addDays(d.today, -31);

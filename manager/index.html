@@ -56,6 +56,10 @@ input,select,textarea{width:100%;padding:12px;font-size:16px;border:1px solid va
 .chip.amber{background:#fdf0d2;color:var(--warn)}
 .lunch{display:block;font-size:12px;color:var(--mute);margin-top:2px}
 .lunch.over{color:var(--bad);font-weight:700}
+.celeb .wish{background:#fdf0d2;border-radius:10px;padding:10px 12px;font-weight:600;margin-bottom:10px;color:var(--walnut)}
+.celeb .crow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+.celeb .crow:last-child{border:0}
+.celeb .crow small{display:block;color:var(--mute);font-size:12px}
 .chip.grey{background:#eee7da;color:var(--mute)}
 .empty{text-align:center;color:var(--mute);padding:24px 0}
 .lv{padding:14px 0;border-bottom:1px solid var(--line);font-size:14px}
@@ -127,6 +131,7 @@ input,select,textarea{width:100%;padding:12px;font-size:16px;border:1px solid va
         <input type="date" id="dateIn">
         <button id="dNext">›</button>
       </div>
+      <div id="celebBox"></div>
       <div class="tiles">
         <div><b id="cPresent">0</b>Present</div>
         <div><b id="cAbsent">0</b>Absent</div>
@@ -207,7 +212,7 @@ input,select,textarea{width:100%;padding:12px;font-size:16px;border:1px solid va
     </div>
 
     <div class="note" id="upd" style="text-align:center"></div>
-    <div class="note" style="text-align:center">Manager app v3.4 · 24-day pay basis</div>
+    <div class="note" style="text-align:center">Manager app v3.5 · birthdays &amp; anniversaries</div>
     <button class="btn ghost" id="refresh">Refresh now</button>
   </section>
 </main>
@@ -282,8 +287,16 @@ function chipFor(s, leaveType){
 
 /* ---------- Today tab ---------- */
 const FILTERS = [['all','All'],['present','Present'],['absent','Absent'],['leave','On leave'],['notin','Not in'],['off','Off'],['over','Over lunch']];
+function celebHTML(list){
+  if(!list || !list.length) return '';
+  const when = c => c.days === 0 ? '<b style="color:var(--gold)">Today</b>' : c.days === 1 ? 'Tomorrow' : dmy(c.date);
+  const own = list.filter(c => c.me && c.days === 0).map(c => '<div class="wish">' + (c.kind === 'birthday' ? '🎂 Happy Birthday' : '💍 Happy Wedding Anniversary') + ', ' + esc(c.name.split(' ')[0]) + '! 🎉</div>').join('');
+  return '<div class="card celeb">' + own + '<b>🎂 Birthdays &amp; anniversaries</b>' + list.map(c =>
+    '<div class="crow"><span>' + (c.kind === 'birthday' ? '🎂 ' : '💍 ') + esc(c.name) + (c.me ? ' (you)' : '') + '<small>' + (c.kind === 'birthday' ? 'Birthday' : 'Wedding anniversary') + (c.dept ? ' · ' + esc(c.dept) : '') + '</small></span><span>' + when(c) + '</span></div>').join('') + '</div>';
+}
 function renderToday(){
   const d = data; if(!d) return;
+  $('celebBox').innerHTML = celebHTML(d.celebrations);
   $('dateIn').value = d.date; $('dateIn').max = d.today;
   $('dNext').disabled = d.date >= d.today;
   $('cPresent').textContent = d.counts.present; $('cAbsent').textContent = d.counts.absent;

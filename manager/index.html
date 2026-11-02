@@ -104,7 +104,7 @@ input,select,textarea{width:100%;padding:12px;font-size:16px;border:1px solid va
 #pane-me .metoday b{display:block;font-size:22px;margin-top:4px}
 #pane-me .metoday span{font-size:12px;color:var(--mute)}
 #pane-me .lnk{background:none;border:0;color:var(--gold);font-weight:600;font-size:12px;padding:2px 0;display:block;margin:2px 0 0}
-#pane-me .two{display:flex;gap:10px}#pane-me .two>div{flex:1}
+#pane-me .two{display:flex;gap:10px}#pane-me .two>div{flex:1;min-width:0}#pane-me .two input{min-width:0}
 #pane-me .lv button{margin-top:8px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:13px;color:var(--bad)}
 .okmsg{color:var(--ok);font-size:14px;margin-top:10px}
 .quota{background:var(--paper);border-radius:10px;padding:8px 10px;font-size:13px;color:var(--mute);margin-top:8px}
@@ -436,13 +436,13 @@ async function loadDetail(month){
 
 function fg(n){ return (Number(n) || 0).toFixed(3).replace(/\.?0+$/, ''); }
 function fd(n){ return (Number(n) || 0).toFixed(2).replace(/\.?0+$/, ''); }
-function saleLine(c){ return (c.gold || c.diamond) ? '<span class="lunch">💰 Gold ' + fg(c.gold) + ' g · Diamond ' + fd(c.diamond) + ' ct</span>' : ''; }
+function saleLine(c){ return (c.gold || c.diamond || c.bills) ? '<span class="lunch">💰 Gold ' + fg(c.gold) + ' g · Diamond ' + fd(c.diamond) + ' ct' + (c.bills ? ' · ' + c.bills + ' bills' : '') + '</span>' : ''; }
 function salesHTML(d, title){
   const s = d.sales; if(!s || !s.linked) return '';
   const m = Number((d.month || d.today.slice(0,7)).split('-')[1]);
   return '<div class="card"><b>' + (title || 'My sales') + '</b>' + (s.lastDate ? ' <span class="sub">· data up to ' + dmy(s.lastDate) + '</span>' : '') +
     '<div class="sale"><div>Gold today<b>' + fg(s.today.gold) + ' <i>g</i></b></div><div>Diamond today<b>' + fd(s.today.diamond) + ' <i>ct</i></b></div>' +
-    '<div>Gold · ' + MON[m-1].slice(0,3) + '<b>' + fg(s.month.gold) + ' <i>g</i></b></div><div>Diamond · ' + MON[m-1].slice(0,3) + '<b>' + fd(s.month.diamond) + ' <i>ct</i></b></div></div></div>';
+    '<div>Gold · ' + MON[m-1].slice(0,3) + '<b>' + fg(s.month.gold) + ' <i>g</i></b></div><div>Diamond · ' + MON[m-1].slice(0,3) + '<b>' + fd(s.month.diamond) + ' <i>ct</i></b></div><div>Bills · ' + MON[m-1].slice(0,3) + '<b>' + (s.month.bills || 0) + '</b></div></div></div>';
 }
 /* ---------- Sales tab (all sales staff, month totals) ---------- */
 let smonth = null;
@@ -451,7 +451,7 @@ function renderSales(d){
   const m = Number(d.month.split('-')[1]), y = d.month.split('-')[0];
   $('sLbl').textContent = MON[m-1] + ' ' + y;
   $('sNext').disabled = d.month >= d.today.slice(0,7);
-  $('salesTotals').innerHTML = '<div>Gold<b>' + fg(d.totals.gold) + ' <i>g</i></b></div><div>Diamond<b>' + fd(d.totals.diamond) + ' <i>ct</i></b></div>';
+  $('salesTotals').innerHTML = '<div>Gold<b>' + fg(d.totals.gold) + ' <i>g</i></b></div><div>Diamond<b>' + fd(d.totals.diamond) + ' <i>ct</i></b></div><div>Bills<b>' + (d.totals.bills || 0) + '</b></div>';
   let w = '';
   if(d.lastDate) w += 'Sales data is up to ' + dmy(d.lastDate) + '.';
   else w += 'No sales have been pasted into the Sales tab yet.';
@@ -459,7 +459,7 @@ function renderSales(d){
   $('salesNote').innerHTML = w;
   $('salesList').innerHTML = d.staff.length ? d.staff.map(s =>
     '<div class="srow" data-staff="' + esc(s.code) + '"><div><b>' + esc(s.name) + '</b><small>' + esc(s.code) + (s.dept ? ' · ' + esc(s.dept) : '') + (s.branch ? ' · ' + esc(s.branch) : '') + '</small></div>' +
-    '<div class="v"><b>' + fg(s.gold) + ' g</b><small>' + fd(s.diamond) + ' ct</small></div></div>').join('')
+    '<div class="v"><b>' + fg(s.gold) + ' g</b><small>' + fd(s.diamond) + ' ct · ' + (s.bills || 0) + ' bills</small></div></div>').join('')
     : '<div class="empty">No staff have a Sales software ID yet.</div>';
 }
 async function loadSales(month){

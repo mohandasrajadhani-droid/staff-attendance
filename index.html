@@ -75,7 +75,7 @@ textarea{min-height:76px;resize:vertical}
 .lv .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .lv .rs{color:var(--mute);font-size:13px;margin-top:4px}
 .lv button{margin-top:8px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:13px;color:var(--bad)}
-.two{display:flex;gap:10px}.two>div{flex:1}
+.two{display:flex;gap:10px}.two>div{flex:1;min-width:0}.two input{min-width:0}
 .tabs{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);display:flex;z-index:6;padding-bottom:env(safe-area-inset-bottom)}
 .tabs button{flex:1;border:0;background:none;padding:14px 0;font-size:14px;font-weight:600;color:var(--mute)}
 .tabs button.on{color:var(--walnut);box-shadow:inset 0 3px 0 var(--gold)}
@@ -238,13 +238,13 @@ function celebHTML(list){
 }
 function fg(n){ return (Number(n) || 0).toFixed(3).replace(/\.?0+$/, '') ; }
 function fd(n){ return (Number(n) || 0).toFixed(2).replace(/\.?0+$/, ''); }
-function saleLine(c){ return (c.gold || c.diamond) ? '<span class="lunch">💰 Gold ' + fg(c.gold) + ' g · Diamond ' + fd(c.diamond) + ' ct</span>' : ''; }
+function saleLine(c){ return (c.gold || c.diamond || c.bills) ? '<span class="lunch">💰 Gold ' + fg(c.gold) + ' g · Diamond ' + fd(c.diamond) + ' ct' + (c.bills ? ' · ' + c.bills + ' bills' : '') + '</span>' : ''; }
 function salesHTML(d, title){
   const s = d.sales; if(!s || !s.linked) return '';
   const [y,m] = (d.month || d.today.slice(0,7)).split('-').map(Number);
   return '<div class="card"><b>' + (title || 'My sales') + '</b>' + (s.lastDate ? ' <span class="sub">· data up to ' + dmy(s.lastDate) + '</span>' : '') +
     '<div class="sale"><div>Gold today<b>' + fg(s.today.gold) + ' <i>g</i></b></div><div>Diamond today<b>' + fd(s.today.diamond) + ' <i>ct</i></b></div>' +
-    '<div>Gold · ' + MON[m-1].slice(0,3) + '<b>' + fg(s.month.gold) + ' <i>g</i></b></div><div>Diamond · ' + MON[m-1].slice(0,3) + '<b>' + fd(s.month.diamond) + ' <i>ct</i></b></div></div></div>';
+    '<div>Gold · ' + MON[m-1].slice(0,3) + '<b>' + fg(s.month.gold) + ' <i>g</i></b></div><div>Diamond · ' + MON[m-1].slice(0,3) + '<b>' + fd(s.month.diamond) + ' <i>ct</i></b></div><div>Bills · ' + MON[m-1].slice(0,3) + '<b>' + (s.month.bills || 0) + '</b></div></div></div>';
 }
 function renderAtt(d, stale){
   month = d.month;

@@ -60,6 +60,14 @@ input,select,textarea{width:100%;padding:12px;font-size:16px;border:1px solid va
 .celeb .crow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
 .celeb .crow:last-child{border:0}
 .celeb .crow small{display:block;color:var(--mute);font-size:12px}
+.sale{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.sale div{background:var(--paper);border-radius:10px;padding:10px 6px;text-align:center;font-size:12px;color:var(--mute)}
+.sale b{display:block;font-size:19px;color:var(--ink);margin-top:2px}
+.sale b i{font-style:normal;font-size:12px;color:var(--mute);font-weight:500}
+.srow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
+.srow:last-child{border:0}
+.srow small{display:block;color:var(--mute);font-size:12px}
+.srow .v{text-align:right;white-space:nowrap}
 .chip.grey{background:#eee7da;color:var(--mute)}
 .empty{text-align:center;color:var(--mute);padding:24px 0}
 .lv{padding:14px 0;border-bottom:1px solid var(--line);font-size:14px}
@@ -167,6 +175,7 @@ input,select,textarea{width:100%;padding:12px;font-size:16px;border:1px solid va
         <div><b id="sHrs">0h</b>Net hrs</div>
         <div><b id="sLunch">–</b>Avg lunch</div>
       </div>
+      <div id="dSales"></div>
       <div class="note warn" id="lunchNote" style="text-align:center"></div>
       <div class="card" id="dList"></div>
       <div class="card"><b>Leave requests</b><div id="dLeaves"></div></div>
@@ -183,6 +192,7 @@ input,select,textarea{width:100%;padding:12px;font-size:16px;border:1px solid va
           <div><span>Hours</span><b id="meHrs">--</b></div>
         </div>
       </div>
+      <div id="meSales"></div>
       <div class="mnav"><button id="meP">‹</button><b id="meLbl"></b><button id="meN">›</button></div>
       <div class="tiles">
         <div><b id="mePresent">0</b>Present</div>
@@ -211,15 +221,27 @@ input,select,textarea{width:100%;padding:12px;font-size:16px;border:1px solid va
       <div class="card"><b>My leave requests</b><div id="meLeaves"></div></div>
     </div>
 
+    <!-- ===== Sales tab ===== -->
+    <div id="pane-sales" class="hidden">
+      <div class="mnavs" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <button id="sPrev" style="background:#fff;border:1px solid var(--line);border-radius:8px;padding:8px 14px;font-size:16px">‹</button>
+        <b id="sLbl" style="font-family:'Cormorant Garamond',serif;font-size:20px"></b>
+        <button id="sNext" style="background:#fff;border:1px solid var(--line);border-radius:8px;padding:8px 14px;font-size:16px">›</button>
+      </div>
+      <div class="card"><b>Total sales</b><div class="sale" id="salesTotals"></div><div class="note" id="salesNote"></div></div>
+      <div class="card"><b>By salesperson</b> <span class="sub">· highest gold first</span><div id="salesList"></div></div>
+    </div>
+
     <div class="note" id="upd" style="text-align:center"></div>
-    <div class="note" style="text-align:center">Manager app v3.5 · birthdays &amp; anniversaries</div>
+    <div class="note" style="text-align:center">Manager app v3.6 · gold &amp; diamond sales</div>
     <button class="btn ghost" id="refresh">Refresh now</button>
   </section>
 </main>
 <nav class="tabs hidden" id="tabs">
-  <button id="tab-today" class="on">Staff today</button>
-  <button id="tab-leaves">Leave requests<span class="badge hidden" id="badge">0</span></button>
-  <button id="tab-me">My attendance</button>
+  <button id="tab-today" class="on">Today</button>
+  <button id="tab-leaves">Leaves<span class="badge hidden" id="badge">0</span></button>
+  <button id="tab-sales">Sales</button>
+  <button id="tab-me">Me</button>
 </nav>
 
 <script>
@@ -247,6 +269,8 @@ function setTab(t){
   $('pane-today').classList.toggle('hidden', t !== 'today');
   $('pane-leaves').classList.toggle('hidden', t !== 'leaves');
   $('pane-me').classList.toggle('hidden', t !== 'me');
+  $('pane-sales').classList.toggle('hidden', t !== 'sales');
+  $('tab-sales').classList.toggle('on', t === 'sales');
   $('tab-me').classList.toggle('on', t === 'me');
   $('pane-detail').classList.add('hidden');
   $('tab-today').classList.toggle('on', t === 'today');
@@ -318,6 +342,7 @@ function renderToday(){
     if(s.lunchOut) lu = '<span class="lunch' + (s.over ? ' over' : '') + '">🍽 ' + esc(s.lunchOut) + ' → ' + esc(s.lunchIn) + ' · ' + s.breakMin + ' min' + (s.over ? ' (+' + (s.breakMin - (d.lunchAllowed || 40)) + ' over)' : '') + (s.breaks > 1 ? ' · ' + s.breaks + ' breaks' : '') + '</span>';
     else if(s.breakMin) lu = '<span class="lunch' + (s.over ? ' over' : '') + '">🍽 ' + s.breakMin + ' min</span>';
     else if(s.first && s.last && s.status === 'Present') lu = '<span class="lunch">No lunch punch</span>';
+    lu += saleLine(s);
     return '<div class="person" data-staff="' + esc(s.code) + '"><div class="l"><b>' + esc(s.name) + (s.isManager ? ' ★' : '') + '</b><small>' + esc(s.code) +
       (s.dept ? ' · ' + esc(s.dept) : '') + (s.desig ? ' · ' + esc(s.desig) : '') + '</small>' + lu + '</div>' +
       '<div class="r">' + chipFor(s.status, s.leaveType) + '<span class="tm">' + tm + '</span></div></div>';
@@ -368,6 +393,7 @@ function dayRow(c){
     right = c.net != null ? hm(c.net) : (p.length > 1 ? hm(toMin(p[p.length-1]) - toMin(p[0])) : '—');
     if(c.lunchOut) mid += '<span class="lunch' + (c.over ? ' over' : '') + '">🍽 ' + esc(c.lunchOut) + ' → ' + esc(c.lunchIn) + ' · ' + c.breakMin + ' min' + (c.over ? ' ⚠' : '') + '</span>';
   } else mid = chipFor(c.status, c.leaveType);
+  mid += saleLine(c);
   return '<div class="day">' + left + '<div class="t">' + mid + '</div><div class="h">' + right + '</div></div>';
 }
 function renderDetail(d){
@@ -383,6 +409,7 @@ function renderDetail(d){
   $('sPresent').textContent = d.summary.present; $('sAbsent').textContent = d.summary.absent; $('sLeave').textContent = d.summary.onLeave;
   $('sHrs').textContent = Math.floor((d.summary.netMinutes || d.summary.minutes)/60) + 'h';
   $('sLunch').textContent = d.summary.lunchDays ? Math.round(d.summary.lunchTotal / d.summary.lunchDays) + 'm' : '–';
+  $('dSales').innerHTML = d.staff.salesLinked ? salesHTML({sales: d.sales, month: d.month, today: d.today}, 'Sales') : '';
   $('lunchNote').innerHTML = d.summary.lunchOver ? '⚠ ' + d.summary.lunchOver + ' day(s) over the ' + (d.lunchAllowed || 40) + '-min lunch limit' : '';
   $('dList').innerHTML = d.calendar.length ? d.calendar.slice().reverse().map(dayRow).join('') : '<div class="empty">Nothing to show yet.</div>';
   $('dLeaves').innerHTML = d.leaves.length ? d.leaves.map(l => {
@@ -393,7 +420,7 @@ function renderDetail(d){
 }
 async function openDetail(code, month){
   detail = code;
-  $('pane-today').classList.add('hidden'); $('pane-leaves').classList.add('hidden'); $('pane-me').classList.add('hidden'); $('pane-detail').classList.remove('hidden');
+  $('pane-today').classList.add('hidden'); $('pane-leaves').classList.add('hidden'); $('pane-me').classList.add('hidden'); $('pane-sales').classList.add('hidden'); $('pane-detail').classList.remove('hidden');
   window.scrollTo(0, 0);
   await loadDetail(month);
 }
@@ -407,6 +434,41 @@ async function loadDetail(month){
 }
 
 
+function fg(n){ return (Number(n) || 0).toFixed(3).replace(/\.?0+$/, ''); }
+function fd(n){ return (Number(n) || 0).toFixed(2).replace(/\.?0+$/, ''); }
+function saleLine(c){ return (c.gold || c.diamond) ? '<span class="lunch">💰 Gold ' + fg(c.gold) + ' g · Diamond ' + fd(c.diamond) + ' ct</span>' : ''; }
+function salesHTML(d, title){
+  const s = d.sales; if(!s || !s.linked) return '';
+  const m = Number((d.month || d.today.slice(0,7)).split('-')[1]);
+  return '<div class="card"><b>' + (title || 'My sales') + '</b>' + (s.lastDate ? ' <span class="sub">· data up to ' + dmy(s.lastDate) + '</span>' : '') +
+    '<div class="sale"><div>Gold today<b>' + fg(s.today.gold) + ' <i>g</i></b></div><div>Diamond today<b>' + fd(s.today.diamond) + ' <i>ct</i></b></div>' +
+    '<div>Gold · ' + MON[m-1].slice(0,3) + '<b>' + fg(s.month.gold) + ' <i>g</i></b></div><div>Diamond · ' + MON[m-1].slice(0,3) + '<b>' + fd(s.month.diamond) + ' <i>ct</i></b></div></div></div>';
+}
+/* ---------- Sales tab (all sales staff, month totals) ---------- */
+let smonth = null;
+function renderSales(d){
+  smonth = d.month;
+  const m = Number(d.month.split('-')[1]), y = d.month.split('-')[0];
+  $('sLbl').textContent = MON[m-1] + ' ' + y;
+  $('sNext').disabled = d.month >= d.today.slice(0,7);
+  $('salesTotals').innerHTML = '<div>Gold<b>' + fg(d.totals.gold) + ' <i>g</i></b></div><div>Diamond<b>' + fd(d.totals.diamond) + ' <i>ct</i></b></div>';
+  let w = '';
+  if(d.lastDate) w += 'Sales data is up to ' + dmy(d.lastDate) + '.';
+  else w += 'No sales have been pasted into the Sales tab yet.';
+  if(d.unmapped && d.unmapped.length) w += ' <span class="warn">Sales IDs with no staff linked: ' + d.unmapped.map(esc).join(', ') + ' — add them in HRMS (Sales software ID).</span>';
+  $('salesNote').innerHTML = w;
+  $('salesList').innerHTML = d.staff.length ? d.staff.map(s =>
+    '<div class="srow" data-staff="' + esc(s.code) + '"><div><b>' + esc(s.name) + '</b><small>' + esc(s.code) + (s.dept ? ' · ' + esc(s.dept) : '') + (s.branch ? ' · ' + esc(s.branch) : '') + '</small></div>' +
+    '<div class="v"><b>' + fg(s.gold) + ' g</b><small>' + fd(s.diamond) + ' ct</small></div></div>').join('')
+    : '<div class="empty">No staff have a Sales software ID yet.</div>';
+}
+async function loadSales(month){
+  try{
+    const d = await api({action:'managerSales', month: month || smonth || undefined});
+    if(!d.ok){ if(authFail(d)) return; $('upd').textContent = d.error || 'Could not load'; return; }
+    renderSales(d);
+  }catch(e){ $('upd').textContent = 'Can\'t reach the server.'; }
+}
 /* ---------- My attendance tab ---------- */
 let meMonth = null, meCancel = null;
 function meDayRow(c, today){
@@ -424,6 +486,7 @@ function meDayRow(c, today){
   } else if(c.status === 'Leave pending'){ mid = '<span class="chip amber">Applied · waiting approval</span>';
   } else if(c.status === 'Weekly off' || c.status === 'Holiday'){ mid = '<span class="chip grey">' + esc(c.status) + '</span>';
   } else mid = '<span class="chip grey">No punch yet</span>';
+  mid += saleLine(c);
   return '<div class="day">' + left + '<div class="t">' + mid + '</div><div class="h">' + right + '</div></div>';
 }
 function renderMe(d){
@@ -438,6 +501,7 @@ function renderMe(d){
   } else { $('meIn').textContent = '--:--'; $('meOut').textContent = '--:--'; $('meHrs').textContent = '--'; }
   const [y,m] = d.month.split('-').map(Number);
   $('meLbl').textContent = MON[m-1] + ' ' + y;
+  $('meSales').innerHTML = salesHTML(d);
   $('meN').disabled = d.month >= d.today.slice(0,7);
   const sm = d.summary || {present:0, absent:0, onLeave:0, minutes:0};
   $('mePresent').textContent = sm.present; $('meAbs').textContent = sm.absent; $('meApp').textContent = sm.onLeave;
@@ -477,6 +541,7 @@ async function load(){
     LS.set('mgr_cache', JSON.stringify({at: new Date().toLocaleString(), d}));
     renderToday(); renderLeaves();
     if(tab === 'me') loadMe();
+    if(tab === 'sales') loadSales();
     $('upd').textContent = 'Updated ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) + ' · refreshes automatically';
     showMain('view');
   }catch(e){
@@ -516,6 +581,10 @@ $('refresh').onclick = load;
 $('tab-today').onclick = () => { setTab('today'); };
 $('tab-leaves').onclick = () => { setTab('leaves'); };
 $('tab-me').onclick = () => { setTab('me'); loadMe(); };
+$('tab-sales').onclick = () => { setTab('sales'); loadSales(); };
+$('sPrev').onclick = () => loadSales(addMonth(smonth, -1));
+$('sNext').onclick = () => loadSales(addMonth(smonth, 1));
+$('salesList').addEventListener('click', e => { const p = e.target.closest('[data-staff]'); if(p) openDetail(p.dataset.staff); });
 $('meP').onclick = () => { meMonth = addMonth(meMonth, -1); loadMe(); };
 $('meN').onclick = () => { meMonth = addMonth(meMonth, 1); loadMe(); };
 $('meList').addEventListener('click', e => {

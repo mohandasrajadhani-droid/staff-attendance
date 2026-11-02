@@ -62,6 +62,10 @@ textarea{min-height:76px;resize:vertical}
 .celeb .crow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
 .celeb .crow:last-child{border:0}
 .celeb .crow small{display:block;color:var(--mute);font-size:12px}
+.sale{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.sale div{background:var(--paper);border-radius:10px;padding:10px 6px;text-align:center;font-size:12px;color:var(--mute)}
+.sale b{display:block;font-size:19px;color:var(--ink);margin-top:2px}
+.sale b i{font-style:normal;font-size:12px;color:var(--mute);font-weight:500}
 .chip.grey{background:#eee7da;color:var(--mute)}
 .lnk{background:none;border:0;color:var(--gold);font-weight:600;font-size:12px;padding:2px 0;display:block;margin:2px auto 0}
 .stale{background:#fff3d6;border:1px solid #e8cf93;border-radius:10px;padding:8px 12px;font-size:12px;margin-bottom:12px}
@@ -112,6 +116,7 @@ textarea{min-height:76px;resize:vertical}
         </div>
       </div>
       <div id="celebBox"></div>
+      <div id="salesBox"></div>
       <div class="stale hidden" id="stale"></div>
       <div class="nav"><button id="prev">‹</button><b id="monthLbl"></b><button id="next">›</button></div>
       <div class="sum">
@@ -148,7 +153,7 @@ textarea{min-height:76px;resize:vertical}
     </div>
 
     <div class="note" id="upd" style="text-align:center"></div>
-    <div class="note" style="text-align:center">Staff app v3.4 · birthdays &amp; anniversaries</div>
+    <div class="note" style="text-align:center">Staff app v3.5 · gold &amp; diamond sales</div>
     <button class="btn ghost" id="refresh">Refresh now</button>
   </section>
 </main>
@@ -220,6 +225,7 @@ function dayRow(c, today){
   } else {
     mid = '<span class="chip grey">No punch yet</span>';
   }
+  mid += saleLine(c);
   return '<div class="day">' + left + '<div class="t">' + mid + '</div><div class="h">' + right + '</div></div>';
 }
 
@@ -230,8 +236,19 @@ function celebHTML(list){
   return '<div class="card celeb">' + own + '<b>🎂 Birthdays &amp; anniversaries</b>' + list.map(c =>
     '<div class="crow"><span>' + (c.kind === 'birthday' ? '🎂 ' : '💍 ') + esc(c.name) + (c.me ? ' (you)' : '') + '<small>' + (c.kind === 'birthday' ? 'Birthday' : 'Wedding anniversary') + (c.dept ? ' · ' + esc(c.dept) : '') + '</small></span><span>' + when(c) + '</span></div>').join('') + '</div>';
 }
+function fg(n){ return (Number(n) || 0).toFixed(3).replace(/\.?0+$/, '') ; }
+function fd(n){ return (Number(n) || 0).toFixed(2).replace(/\.?0+$/, ''); }
+function saleLine(c){ return (c.gold || c.diamond) ? '<span class="lunch">💰 Gold ' + fg(c.gold) + ' g · Diamond ' + fd(c.diamond) + ' ct</span>' : ''; }
+function salesHTML(d, title){
+  const s = d.sales; if(!s || !s.linked) return '';
+  const [y,m] = (d.month || d.today.slice(0,7)).split('-').map(Number);
+  return '<div class="card"><b>' + (title || 'My sales') + '</b>' + (s.lastDate ? ' <span class="sub">· data up to ' + dmy(s.lastDate) + '</span>' : '') +
+    '<div class="sale"><div>Gold today<b>' + fg(s.today.gold) + ' <i>g</i></b></div><div>Diamond today<b>' + fd(s.today.diamond) + ' <i>ct</i></b></div>' +
+    '<div>Gold · ' + MON[m-1].slice(0,3) + '<b>' + fg(s.month.gold) + ' <i>g</i></b></div><div>Diamond · ' + MON[m-1].slice(0,3) + '<b>' + fd(s.month.diamond) + ' <i>ct</i></b></div></div></div>';
+}
 function renderAtt(d, stale){
   month = d.month;
+  $('salesBox').innerHTML = salesHTML(d);
   $('celebBox').innerHTML = celebHTML(d.celebrations);
   $('hello').textContent = 'Hello, ' + (d.name || d.code);
   const t = new Date(d.today + 'T00:00:00Z');

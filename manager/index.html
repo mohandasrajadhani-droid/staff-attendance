@@ -446,14 +446,15 @@ function exParts(x){      // other ornament categories, only those with figures
   return p;
 }
 function exLine(x){ const p = exParts(x); return p.length ? '<span class="lunch">' + p.join(' · ') + '</span>' : ''; }
-function saleLine(c){ return (c.gold || c.diamond || c.bills || exParts(c.ex).length) ? '<span class="lunch">💰 Gold ' + fg(c.gold) + ' g · Diamond ' + fd(c.diamond) + ' ct' + (c.bills ? ' · ' + c.bills + ' bills' : '') + '</span>' + exLine(c.ex) : ''; }
+function inr(n){ return '₹' + Math.round(Number(n) || 0).toLocaleString('en-IN'); }
+function saleLine(c){ return (c.gold || c.diamond || c.bills || c.inc || exParts(c.ex).length) ? '<span class="lunch">💰 Gold ' + fg(c.gold) + ' g · Diamond ' + fd(c.diamond) + ' ct' + (c.bills ? ' · ' + c.bills + ' bills' : '') + '</span>' + exLine(c.ex) + (c.inc ? '<span class="lunch" style="font-weight:700">Incentive ' + inr(c.inc) + '</span>' : '') : ''; }
 function salesHTML(d, title){
   const s = d.sales; if(!s) return '';
   if(!s.linked) return /sales/i.test(s.dept || '') ? '<div class="card"><b>' + (title || 'My sales') + '</b><div class="sub" style="margin-top:6px">Your billing-software Sales ID is not linked yet. Ask the office to add it in Staff Master (Sales software ID) and sync staff.</div></div>' : '';
   const m = Number((d.month || d.today.slice(0,7)).split('-')[1]);
   return '<div class="card"><b>' + (title || 'My sales') + '</b>' + (s.lastDate ? ' <span class="sub">· data up to ' + dmy(s.lastDate) + '</span>' : '') +
     '<div class="sale"><div>Gold today<b>' + fg(s.today.gold) + ' <i>g</i></b></div><div>Diamond today<b>' + fd(s.today.diamond) + ' <i>ct</i></b></div>' +
-    '<div>Gold · ' + MON[m-1].slice(0,3) + '<b>' + fg(s.month.gold) + ' <i>g</i></b></div><div>Diamond · ' + MON[m-1].slice(0,3) + '<b>' + fd(s.month.diamond) + ' <i>ct</i></b></div><div>Bills · ' + MON[m-1].slice(0,3) + '<b>' + (s.month.bills || 0) + '</b></div></div>' + (exParts(s.month.ex).length ? '<div class="sub" style="margin-top:6px">' + MON[m-1].slice(0,3) + ': ' + exParts(s.month.ex).join(' · ') + '</div>' : '') + (exParts(s.today.ex).length ? '<div class="sub">Today: ' + exParts(s.today.ex).join(' · ') + '</div>' : '') + '</div>';
+    '<div>Gold · ' + MON[m-1].slice(0,3) + '<b>' + fg(s.month.gold) + ' <i>g</i></b></div><div>Diamond · ' + MON[m-1].slice(0,3) + '<b>' + fd(s.month.diamond) + ' <i>ct</i></b></div><div>Bills · ' + MON[m-1].slice(0,3) + '<b>' + (s.month.bills || 0) + '</b></div><div>Incentive today<b>' + inr(s.today.inc) + '</b></div><div>Incentive · ' + MON[m-1].slice(0,3) + '<b>' + inr(s.month.inc) + '</b></div></div>' + (exParts(s.month.ex).length ? '<div class="sub" style="margin-top:6px">' + MON[m-1].slice(0,3) + ': ' + exParts(s.month.ex).join(' · ') + '</div>' : '') + (exParts(s.today.ex).length ? '<div class="sub">Today: ' + exParts(s.today.ex).join(' · ') + '</div>' : '') + '</div>';
 }
 /* ---------- Sales tab (all sales staff, month totals) ---------- */
 let smonth = null;
@@ -462,7 +463,7 @@ function renderSales(d){
   const m = Number(d.month.split('-')[1]), y = d.month.split('-')[0];
   $('sLbl').textContent = MON[m-1] + ' ' + y;
   $('sNext').disabled = d.month >= d.today.slice(0,7);
-  $('salesTotals').innerHTML = '<div>Gold<b>' + fg(d.totals.gold) + ' <i>g</i></b></div><div>Diamond<b>' + fd(d.totals.diamond) + ' <i>ct</i></b></div><div>Bills<b>' + (d.totals.bills || 0) + '</b></div>' + (exParts(d.totals.ex).length ? '<div style="flex-basis:100%;font-size:12px;opacity:.85">' + exParts(d.totals.ex).join(' · ') + '</div>' : '');
+  $('salesTotals').innerHTML = '<div>Gold<b>' + fg(d.totals.gold) + ' <i>g</i></b></div><div>Diamond<b>' + fd(d.totals.diamond) + ' <i>ct</i></b></div><div>Bills<b>' + (d.totals.bills || 0) + '</b></div><div>Incentive<b>' + inr(d.totals.inc) + '</b></div>' + (exParts(d.totals.ex).length ? '<div style="flex-basis:100%;font-size:12px;opacity:.85">' + exParts(d.totals.ex).join(' · ') + '</div>' : '');
   let w = '';
   if(d.lastDate) w += 'Sales data is up to ' + dmy(d.lastDate) + '.';
   else w += 'No sales have been pasted into the Sales tab yet.';
@@ -470,7 +471,7 @@ function renderSales(d){
   $('salesNote').innerHTML = w;
   $('salesList').innerHTML = d.staff.length ? d.staff.map(s =>
     '<div class="srow" data-staff="' + esc(s.code) + '"><div><b>' + esc(s.name) + '</b><small>' + esc(s.code) + (s.dept ? ' · ' + esc(s.dept) : '') + (s.branch ? ' · ' + esc(s.branch) : '') + '</small></div>' +
-    '<div class="v"><b>' + fg(s.gold) + ' g</b><small>' + fd(s.diamond) + ' ct · ' + (s.bills || 0) + ' bills</small>' + (exParts(s.ex).length ? '<small>' + exParts(s.ex).join(' · ') + '</small>' : '') + '</div></div>').join('')
+    '<div class="v"><b>' + fg(s.gold) + ' g</b><small>' + fd(s.diamond) + ' ct · ' + (s.bills || 0) + ' bills · ' + inr(s.inc) + '</small>' + (exParts(s.ex).length ? '<small>' + exParts(s.ex).join(' · ') + '</small>' : '') + '</div></div>').join('')
     : '<div class="empty">No staff have a Sales software ID yet.</div>';
 }
 async function loadSales(month){

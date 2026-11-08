@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#3d2a18">
+<meta name="theme-color" content="#0b1636">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -12,27 +12,30 @@
 <meta name="apple-mobile-web-app-title" content="MS Attendance">
 <link rel="icon" href="icon-192.png">
 <title>MS Staff Attendance</title>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--walnut:#3d2a18;--gold:#b8863b;--paper:#faf6ee;--ink:#2b2118;--mute:#7a6b5a;--line:#e6dcc8;--ok:#2f7d4f;--bad:#a8372c;--warn:#a06a00;--card:#fff}
+:root{--walnut:#0b1636;--gold:#2457f0;--paper:#f1f4fa;--ink:#14203d;--mute:#6a7690;--line:#e2e8f4;--ok:#1d8a4e;--bad:#c93a35;--warn:#a06a00;--card:#fff}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{margin:0;font-family:Inter,system-ui,sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;padding-bottom:76px}
-header{background:var(--walnut);color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:5}
-header h1{font-family:'Cormorant Garamond',serif;font-size:22px;margin:0;color:#f0d9a8}
-header button{background:none;border:1px solid #8a6b40;color:#f0d9a8;border-radius:8px;padding:6px 10px;font-size:13px}
-main{max-width:520px;margin:0 auto;padding:16px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+body{margin:0;font-family:Inter,system-ui,sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;padding-bottom:84px}
+header{background:radial-gradient(130% 160% at 0% 0%,#4a3fc4 0%,#12307f 34%,#070d2a 78%);color:#fff;padding:calc(14px + env(safe-area-inset-top)) 16px 22px;display:flex;align-items:center;justify-content:space-between;border-radius:0 0 26px 26px}
+header .who{display:flex;align-items:center;gap:11px;min-width:0}
+header .av{width:40px;height:40px;border-radius:12px;background:#fff;color:#0b1636;font-weight:700;font-size:18px;display:flex;align-items:center;justify-content:center;flex:none}
+header h1{font-size:17px;margin:0;color:#fff;font-weight:700;line-height:1.2}
+header small{display:block;color:#b9c6ee;font-size:12px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+header button{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:10px;padding:7px 11px;font-size:13px}
+main{max-width:520px;margin:0 auto;padding:16px;margin-top:-6px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:0 2px 10px rgba(20,32,61,.06)}
 label{display:block;font-size:13px;color:var(--mute);margin:10px 0 4px}
 input,select,textarea{width:100%;padding:12px;font-size:16px;border:1px solid var(--line);border-radius:10px;background:#fff;font-family:inherit;color:var(--ink)}
 textarea{min-height:76px;resize:vertical}
-.btn{width:100%;margin-top:14px;padding:13px;font-size:16px;font-weight:600;border:0;border-radius:10px;background:var(--gold);color:#fff}
+.btn{width:100%;margin-top:14px;padding:13px;font-size:16px;font-weight:600;border:0;border-radius:12px;background:linear-gradient(135deg,#1743d8,#2f63ff);color:#fff}
 .btn:disabled{opacity:.6}
 .btn.ghost{background:#fff;color:var(--walnut);border:1px solid var(--line)}
 .err{color:var(--bad);font-size:14px;margin-top:10px}
 .okmsg{color:var(--ok);font-size:14px;margin-top:10px}
 .note{color:var(--mute);font-size:12px;margin-top:8px}
 .chk{display:flex;gap:8px;align-items:center;margin-top:12px;font-size:14px}.chk input{width:auto}
-.hello{font-family:'Cormorant Garamond',serif;font-size:24px;margin:0}
+.hello{font-size:19px;font-weight:700;margin:0}
 .sub{color:var(--mute);font-size:13px}
 .today{display:flex;gap:10px;margin-top:12px}
 .today div{flex:1;text-align:center;background:var(--paper);border-radius:10px;padding:12px 6px}
@@ -41,7 +44,7 @@ textarea{min-height:76px;resize:vertical}
 .nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .nav button{background:#fff;border:1px solid var(--line);border-radius:8px;padding:8px 14px;font-size:16px}
 .nav button:disabled{opacity:.4}
-.nav b{font-family:'Cormorant Garamond',serif;font-size:20px}
+.nav b{font-size:17px}
 .sum{display:flex;gap:8px;margin-bottom:12px}
 .sum div{flex:1;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 4px;text-align:center;font-size:11px;color:var(--mute)}
 .sum b{display:block;font-size:19px;color:var(--ink)}
@@ -58,7 +61,7 @@ textarea{min-height:76px;resize:vertical}
 .lunch{display:block;font-size:12px;color:var(--mute);margin-top:2px}
 .lunch.over{color:var(--bad);font-weight:700}
 .quota{background:var(--paper);border-radius:10px;padding:8px 10px;font-size:13px;color:var(--mute);margin-top:8px}
-.celeb .wish{background:#fdf0d2;border-radius:10px;padding:10px 12px;font-weight:600;margin-bottom:10px;color:var(--walnut)}
+.celeb .wish{background:#e6eeff;border-radius:10px;padding:10px 12px;font-weight:600;margin-bottom:10px;color:#1743d8}
 .celeb .crow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
 .celeb .crow:last-child{border:0}
 .celeb .crow small{display:block;color:var(--mute);font-size:12px}
@@ -77,13 +80,20 @@ textarea{min-height:76px;resize:vertical}
 .lv button{margin-top:8px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:13px;color:var(--bad)}
 .two{display:flex;gap:10px}.two>div{flex:1;min-width:0}.two input{min-width:0}
 .tabs{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);display:flex;z-index:6;padding-bottom:env(safe-area-inset-bottom)}
-.tabs button{flex:1;border:0;background:none;padding:14px 0;font-size:14px;font-weight:600;color:var(--mute)}
-.tabs button.on{color:var(--walnut);box-shadow:inset 0 3px 0 var(--gold)}
+.tabs button{flex:1;border:0;background:none;padding:8px 0 10px;font-size:10.5px;font-weight:600;color:#8a95b0}
+.tabs button i{display:block;font-style:normal;font-size:19px;margin-bottom:2px}
+.tabs button.on{color:var(--gold)}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.tile{background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px 13px;box-shadow:0 2px 10px rgba(20,32,61,.06)}
+.tile span{font-size:12px;color:var(--mute)}.tile b{display:block;font-size:28px;margin:3px 0 1px;line-height:1.1}.tile small{font-size:11px;color:var(--mute)}
+.tile.hi{background:linear-gradient(135deg,#1743d8,#2f63ff);border-color:#1743d8;color:#fff}.tile.hi span,.tile.hi small{color:#dbe5ff}
+.pghead{font-size:20px;font-weight:700;margin:6px 2px 12px}
+.prow{display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--line);font-size:14px}.prow:last-child{border:0}.prow span{color:var(--mute)}
 .hidden{display:none !important}
 </style>
 </head>
 <body>
-<header><h1>MS Staff Attendance</h1><button id="out" class="hidden">Sign out</button></header>
+<header><div class="who"><div class="av" id="hdAv">MS</div><div style="min-width:0"><h1 id="hdName">MS Staff</h1><small id="hdSub">Attendance &amp; sales</small></div></div><button id="out" class="hidden">Sign out</button></header>
 <main>
   <section id="setup" class="card hidden">
     <b>One-time setup</b>
@@ -110,23 +120,47 @@ textarea{min-height:76px;resize:vertical}
         <p class="hello" id="hello"></p>
         <div class="sub" id="todayDate"></div>
         <div class="today">
-          <div><span>First punch</span><b id="tIn">--:--</b></div>
-          <div><span>Last punch</span><b id="tOut">--:--</b></div>
+          <div><span>In</span><b id="tIn">--:--</b></div>
+          <div><span>Out</span><b id="tOut">--:--</b></div>
           <div><span>Hours</span><b id="tHrs">--</b></div>
         </div>
       </div>
-      <div id="celebBox"></div>
-      <div id="salesBox"></div>
+      <div class="tiles">
+        <div class="tile hi"><span>Present</span><b id="sPresent">0</b><small id="sPresentSub">days this month</small></div>
+        <div class="tile"><span>Absent</span><b id="sLeave">0</b><small>no punch, no leave</small></div>
+        <div class="tile"><span>On leave</span><b id="sOnLeave">0</b><small>approved</small></div>
+        <div class="tile"><span>Lunch over limit</span><b id="sLunch">0</b><small id="sHrs">0h</small></div>
+      </div>
       <div class="stale hidden" id="stale"></div>
       <div class="nav"><button id="prev">‹</button><b id="monthLbl"></b><button id="next">›</button></div>
-      <div class="sum">
-        <div><b id="sPresent">0</b>Present</div>
-        <div><b id="sLeave">0</b>Leave</div>
-        <div><b id="sOnLeave">0</b>Approved</div>
-        <div><b id="sHrs">0h</b>Hours</div>
-      </div>
       <div class="card" id="list"></div>
       <div class="note">"Leave" = a working day with no punch and no approved leave. Tap <b>Apply</b> on that day to send a leave request. Shows raw machine punches; final attendance for salary is decided by the office.</div>
+    </div>
+
+    <!-- ===== Sales tab ===== -->
+    <div id="pane-sales" class="hidden">
+      <div class="pghead">My sales</div>
+      <div id="salesBox"></div>
+      <div class="note" id="salesNote"></div>
+    </div>
+
+    <!-- ===== Events tab ===== -->
+    <div id="pane-events" class="hidden">
+      <div class="pghead">Birthdays &amp; anniversaries</div>
+      <div id="celebBox"></div>
+    </div>
+
+    <!-- ===== Profile tab ===== -->
+    <div id="pane-profile" class="hidden">
+      <div class="pghead">Profile</div>
+      <div class="card" id="profCard"></div>
+      <div class="card">
+        <div class="prow"><span>Incentive amounts</span><button class="incbtn" onclick="toggleInc()" style="font-size:12px;padding:5px 11px;border:1px solid #d6def0;border-radius:99px;background:#fff;color:inherit;cursor:pointer"></button></div>
+        <button class="btn ghost" id="refresh">Refresh now</button>
+        <button class="btn ghost" id="out2" style="color:var(--bad)">Sign out</button>
+        <div class="note" id="upd" style="text-align:center"></div>
+        <div class="note" style="text-align:center">Staff app v4.0 · Easy Punch</div>
+      </div>
     </div>
 
     <!-- ===== Leave tab ===== -->
@@ -152,14 +186,14 @@ textarea{min-height:76px;resize:vertical}
       </div>
     </div>
 
-    <div class="note" id="upd" style="text-align:center"></div>
-    <div class="note" style="text-align:center">Staff app v3.5 · gold &amp; diamond sales</div>
-    <button class="btn ghost" id="refresh">Refresh now</button>
   </section>
 </main>
 <nav class="tabs hidden" id="tabs">
-  <button id="tab-att" class="on">Attendance</button>
-  <button id="tab-leave">Leave</button>
+  <button id="tab-att" class="on"><i>🕘</i>Attendance</button>
+  <button id="tab-sales"><i>💎</i>Sales</button>
+  <button id="tab-leave"><i>🗓</i>Leave</button>
+  <button id="tab-events"><i>🎂</i>Events</button>
+  <button id="tab-profile"><i>👤</i>Profile</button>
 </nav>
 
 <script>
@@ -184,10 +218,7 @@ function showMain(id){
 }
 function setTab(t){
   tab = t;
-  $('pane-att').classList.toggle('hidden', t !== 'att');
-  $('pane-leave').classList.toggle('hidden', t !== 'leave');
-  $('tab-att').classList.toggle('on', t === 'att');
-  $('tab-leave').classList.toggle('on', t === 'leave');
+  ['att','sales','leave','events','profile'].forEach(k => { $('pane-' + k).classList.toggle('hidden', t !== k); $('tab-' + k).classList.toggle('on', t === k); });
   window.scrollTo(0, 0);
 }
 function hm(mins){ return Math.floor(mins/60) + 'h ' + String(mins%60).padStart(2,'0') + 'm'; }
@@ -271,6 +302,11 @@ function renderAtt(d, stale){
   $('salesBox').innerHTML = salesHTML(d);
   $('celebBox').innerHTML = celebHTML(d.celebrations);
   $('hello').textContent = 'Hello, ' + (d.name || d.code);
+  $('hdName').textContent = d.name || d.code; $('hdAv').textContent = String(d.name || d.code || 'M').trim().charAt(0).toUpperCase();
+  $('hdSub').textContent = [d.desig, d.dept].filter(Boolean).join(' · ') || 'Attendance & sales';
+  $('profCard').innerHTML = '<div class="prow"><span>Name</span><b>' + esc(d.name || '') + '</b></div><div class="prow"><span>Staff code</span><b>' + esc(d.code) + '</b></div>' +
+    (d.desig ? '<div class="prow"><span>Designation</span><b>' + esc(d.desig) + '</b></div>' : '') + (d.dept ? '<div class="prow"><span>Department</span><b>' + esc(d.dept) + '</b></div>' : '') +
+    (d.branch ? '<div class="prow"><span>Branch</span><b>' + esc(d.branch) + '</b></div>' : '') + (d.phone ? '<div class="prow"><span>Phone</span><b>' + esc(d.phone) + '</b></div>' : '');
   const t = new Date(d.today + 'T00:00:00Z');
   $('todayDate').textContent = DOW[t.getUTCDay()] + ', ' + t.getUTCDate() + ' ' + MON[t.getUTCMonth()] + ' ' + t.getUTCFullYear();
   const td = (d.days || []).find(x => x.date === d.today);
@@ -291,7 +327,8 @@ function renderAtt(d, stale){
   $('sPresent').textContent = s.present;
   $('sLeave').textContent = s.absent;
   $('sOnLeave').textContent = s.onLeave;
-  $('sHrs').textContent = Math.floor(s.minutes/60) + 'h';
+  $('sHrs').textContent = Math.floor(s.minutes/60) + 'h worked';
+  $('sLunch').textContent = s.lunchOver || 0;
   $('list').innerHTML = cal.length ? cal.slice().reverse().map(c => dayRow(c, d.today)).join('') : '<div class="empty">Nothing to show for this month yet.</div>';
 
   const st = $('stale');
@@ -380,8 +417,8 @@ $('out').onclick = () => signOut();
 $('refresh').onclick = load;
 $('prev').onclick = ()=>{ month = addMonth(month, -1); load(); };
 $('next').onclick = ()=>{ month = addMonth(month, 1); load(); };
-$('tab-att').onclick = () => setTab('att');
-$('tab-leave').onclick = () => setTab('leave');
+['att','sales','leave','events','profile'].forEach(k => { $('tab-' + k).onclick = () => setTab(k); });
+$('out2').onclick = () => $('out').click();
 $('urlSave').onclick = ()=>{ const v = $('urlIn').value.trim(); if(/^https:\/\/script\.google\.com\//.test(v)){ LS.set('svcUrl', v); start(); } else alert('Paste the full Web App URL (starts with https://script.google.com/)'); };
 
 // "Apply for this day" on a leave row -> opens the form with that date filled in

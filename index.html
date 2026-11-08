@@ -250,7 +250,8 @@ function exParts(x){      // other ornament categories, only those with figures
 function exLine(x){ const p = exParts(x); return p.length ? '<span class="lunch">' + p.join(' · ') + '</span>' : ''; }
 function saleLine(c){ return (c.gold || c.diamond || c.bills || exParts(c.ex).length) ? '<span class="lunch">💰 Gold ' + fg(c.gold) + ' g · Diamond ' + fd(c.diamond) + ' ct' + (c.bills ? ' · ' + c.bills + ' bills' : '') + '</span>' + exLine(c.ex) : ''; }
 function salesHTML(d, title){
-  const s = d.sales; if(!s || !s.linked) return '';
+  const s = d.sales; if(!s) return '';
+  if(!s.linked) return /sales/i.test(s.dept || '') ? '<div class="card"><b>' + (title || 'My sales') + '</b><div class="sub" style="margin-top:6px">Your billing-software Sales ID is not linked yet. Ask the office to add it in Staff Master (Sales software ID) and sync staff.</div></div>' : '';
   const [y,m] = (d.month || d.today.slice(0,7)).split('-').map(Number);
   return '<div class="card"><b>' + (title || 'My sales') + '</b>' + (s.lastDate ? ' <span class="sub">· data up to ' + dmy(s.lastDate) + '</span>' : '') +
     '<div class="sale"><div>Gold today<b>' + fg(s.today.gold) + ' <i>g</i></b></div><div>Diamond today<b>' + fd(s.today.diamond) + ' <i>ct</i></b></div>' +

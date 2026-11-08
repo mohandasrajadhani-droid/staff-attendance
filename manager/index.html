@@ -434,6 +434,7 @@ function renderDetail(d){
   $('sHrs').textContent = Math.floor((d.summary.netMinutes || d.summary.minutes)/60) + 'h';
   $('sLunch').textContent = d.summary.lunchDays ? Math.round(d.summary.lunchTotal / d.summary.lunchDays) + 'm' : '–';
   $('dSales').innerHTML = d.staff.salesLinked ? salesHTML({sales: d.sales, month: d.month, today: d.today}, 'Sales') : '';
+  $('dSales').innerHTML += poolHTML({pool: d.pool});
   $('lunchNote').innerHTML = d.summary.lunchOver ? '⚠ ' + d.summary.lunchOver + ' day(s) over the ' + (d.lunchAllowed || 40) + '-min lunch limit' : '';
   $('dList').innerHTML = d.calendar.length ? d.calendar.slice().reverse().map(dayRow).join('') : '<div class="empty">Nothing to show yet.</div>';
   $('dLeaves').innerHTML = d.leaves.length ? d.leaves.map(l => {
@@ -480,6 +481,14 @@ function toggleInc(){ hideInc = !hideInc; try{ localStorage.setItem('ms_hide_inc
 new MutationObserver(applyInc).observe(document.documentElement, {childList: true, subtree: true});
 function incBtn(){ return '<button class="incbtn" onclick="toggleInc()" style="float:right;font-size:12px;padding:3px 9px;border:1px solid #d8c8a4;border-radius:99px;background:#fff;color:inherit;cursor:pointer"></button>'; }
 function saleLine(c){ return (c.gold || c.diamond || c.bills || c.inc || exParts(c.ex).length) ? '<span class="lunch">💰 Gold ' + fg(c.gold) + ' g · Diamond ' + fd(c.diamond) + ' ct' + (c.bills ? ' · ' + c.bills + ' bills' : '') + '</span>' + exLine(c.ex) + (c.inc ? '<span class="lunch" style="font-weight:700">Incentive ' + inr(c.inc) + '</span>' : '') : ''; }
+function poolHTML(d){
+  const p = d.pool; if(!p || !p.total) return '';
+  const [y,m] = p.month.split('-').map(Number);
+  const row = (n,v) => v ? '<div class="srow"><span>' + n + '</span><b>' + inr(v) + '</b></div>' : '';
+  return '<div class="card"><b>Common incentive</b> <span class="sub">· ' + MON[m-1].slice(0,3) + ' ' + y + '</span><div class="sale" style="grid-template-columns:1fr"><div>Your share this month<b>' + inr(p.total) + '</b></div></div>' +
+    row('Common pool', p.common) + row('Diamond common', p.diamond) + row('Special', p.special) + row('Manager diamond', p.manager) +
+    '<div class="note">Based on your share and attendance; updated when the office pushes sales.</div></div>';
+}
 function salesHTML(d, title){
   const s = d.sales; if(!s) return '';
   if(!s.linked) return /sales/i.test(s.dept || '') ? '<div class="card"><b>' + (title || 'My sales') + '</b><div class="sub" style="margin-top:6px">Your billing-software Sales ID is not linked yet. Ask the office to add it in Staff Master (Sales software ID) and sync staff.</div></div>' : '';
@@ -545,7 +554,7 @@ function renderMe(d){
   } else { $('meIn').textContent = '--:--'; $('meOut').textContent = '--:--'; $('meHrs').textContent = '--'; }
   const [y,m] = d.month.split('-').map(Number);
   $('meLbl').textContent = MON[m-1] + ' ' + y;
-  $('meSales').innerHTML = salesHTML(d);
+  $('meSales').innerHTML = salesHTML(d) + poolHTML(d);
   $('meN').disabled = d.month >= d.today.slice(0,7);
   const sm = d.summary || {present:0, absent:0, onLeave:0, minutes:0};
   $('mePresent').textContent = sm.present; $('meAbs').textContent = sm.absent; $('meApp').textContent = sm.onLeave;

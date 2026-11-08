@@ -301,6 +301,14 @@ function toggleInc(){ hideInc = !hideInc; try{ localStorage.setItem('ms_hide_inc
 new MutationObserver(applyInc).observe(document.documentElement, {childList: true, subtree: true});
 function incBtn(){ return '<button class="incbtn" onclick="toggleInc()" style="float:right;font-size:12px;padding:3px 9px;border:1px solid #d8c8a4;border-radius:99px;background:#fff;color:inherit;cursor:pointer"></button>'; }
 function saleLine(c){ return (c.gold || c.diamond || c.bills || c.inc || exParts(c.ex).length) ? '<span class="lunch">💰 Gold ' + fg(c.gold) + ' g · Diamond ' + fd(c.diamond) + ' ct' + (c.bills ? ' · ' + c.bills + ' bills' : '') + '</span>' + exLine(c.ex) + (c.inc ? '<span class="lunch" style="font-weight:700">Incentive ' + inr(c.inc) + '</span>' : '') : ''; }
+function poolHTML(d){
+  const p = d.pool; if(!p || !p.total) return '';
+  const [y,m] = p.month.split('-').map(Number);
+  const row = (n,v) => v ? '<div class="srow"><span>' + n + '</span><b>' + inr(v) + '</b></div>' : '';
+  return '<div class="card"><b>Common incentive</b> <span class="sub">· ' + MON[m-1].slice(0,3) + ' ' + y + '</span><div class="sale" style="grid-template-columns:1fr"><div>Your share this month<b>' + inr(p.total) + '</b></div></div>' +
+    row('Common pool', p.common) + row('Diamond common', p.diamond) + row('Special', p.special) + row('Manager diamond', p.manager) +
+    '<div class="note">Based on your share and attendance; updated when the office pushes sales.</div></div>';
+}
 function salesHTML(d, title){
   const s = d.sales; if(!s) return '';
   if(!s.linked) return /sales/i.test(s.dept || '') ? '<div class="card"><b>' + (title || 'My sales') + '</b><div class="sub" style="margin-top:6px">Your billing-software Sales ID is not linked yet. Ask the office to add it in Staff Master (Sales software ID) and sync staff.</div></div>' : '';
@@ -355,7 +363,7 @@ function renderDayDetail(){
 }
 function renderAtt(d, stale){
   month = d.month;
-  $('salesBox').innerHTML = salesHTML(d);
+  $('salesBox').innerHTML = salesHTML(d) + poolHTML(d);
   $('celebBox').innerHTML = celebHTML(d.celebrations);
   $('hello').textContent = 'Hello, ' + (d.name || d.code);
   $('hdName').textContent = d.name || d.code; $('hdAv').textContent = String(d.name || d.code || 'M').trim().charAt(0).toUpperCase();

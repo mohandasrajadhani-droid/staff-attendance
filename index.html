@@ -248,13 +248,21 @@ function exParts(x){      // other ornament categories, only those with figures
   return p;
 }
 function exLine(x){ const p = exParts(x); return p.length ? '<span class="lunch">' + p.join(' · ') + '</span>' : ''; }
-function inr(n){ return '₹' + Math.round(Number(n) || 0).toLocaleString('en-IN'); }
+function inr(n){ const v = '₹' + Math.round(Number(n) || 0).toLocaleString('en-IN'); return '<span class="inc" data-v="' + v + '">' + v + '</span>'; }
+let hideInc = false; try{ hideInc = localStorage.getItem('ms_hide_inc') === '1'; }catch(e){}
+function applyInc(){
+  document.querySelectorAll('.inc').forEach(el => { const t = hideInc ? '₹ ••••' : el.getAttribute('data-v'); if(el.textContent !== t) el.textContent = t; });
+  document.querySelectorAll('.incbtn').forEach(b => { const t = hideInc ? '👁 Show incentive' : '🙈 Hide incentive'; if(b.textContent !== t) b.textContent = t; });
+}
+function toggleInc(){ hideInc = !hideInc; try{ localStorage.setItem('ms_hide_inc', hideInc ? '1' : '0'); }catch(e){} applyInc(); }
+new MutationObserver(applyInc).observe(document.documentElement, {childList: true, subtree: true});
+function incBtn(){ return '<button class="incbtn" onclick="toggleInc()" style="float:right;font-size:12px;padding:3px 9px;border:1px solid #d8c8a4;border-radius:99px;background:#fff;color:inherit;cursor:pointer"></button>'; }
 function saleLine(c){ return (c.gold || c.diamond || c.bills || c.inc || exParts(c.ex).length) ? '<span class="lunch">💰 Gold ' + fg(c.gold) + ' g · Diamond ' + fd(c.diamond) + ' ct' + (c.bills ? ' · ' + c.bills + ' bills' : '') + '</span>' + exLine(c.ex) + (c.inc ? '<span class="lunch" style="font-weight:700">Incentive ' + inr(c.inc) + '</span>' : '') : ''; }
 function salesHTML(d, title){
   const s = d.sales; if(!s) return '';
   if(!s.linked) return /sales/i.test(s.dept || '') ? '<div class="card"><b>' + (title || 'My sales') + '</b><div class="sub" style="margin-top:6px">Your billing-software Sales ID is not linked yet. Ask the office to add it in Staff Master (Sales software ID) and sync staff.</div></div>' : '';
   const [y,m] = (d.month || d.today.slice(0,7)).split('-').map(Number);
-  return '<div class="card"><b>' + (title || 'My sales') + '</b>' + (s.lastDate ? ' <span class="sub">· data up to ' + dmy(s.lastDate) + '</span>' : '') +
+  return '<div class="card">' + incBtn() + '<b>' + (title || 'My sales') + '</b>' + (s.lastDate ? ' <span class="sub">· data up to ' + dmy(s.lastDate) + '</span>' : '') +
     '<div class="sale"><div>Gold today<b>' + fg(s.today.gold) + ' <i>g</i></b></div><div>Diamond today<b>' + fd(s.today.diamond) + ' <i>ct</i></b></div>' +
     '<div>Gold · ' + MON[m-1].slice(0,3) + '<b>' + fg(s.month.gold) + ' <i>g</i></b></div><div>Diamond · ' + MON[m-1].slice(0,3) + '<b>' + fd(s.month.diamond) + ' <i>ct</i></b></div><div>Bills · ' + MON[m-1].slice(0,3) + '<b>' + (s.month.bills || 0) + '</b></div><div>Incentive today<b>' + inr(s.today.inc) + '</b></div><div>Incentive · ' + MON[m-1].slice(0,3) + '<b>' + inr(s.month.inc) + '</b></div></div>' + (exParts(s.month.ex).length ? '<div class="sub" style="margin-top:6px">' + MON[m-1].slice(0,3) + ': ' + exParts(s.month.ex).join(' · ') + '</div>' : '') + (exParts(s.today.ex).length ? '<div class="sub">Today: ' + exParts(s.today.ex).join(' · ') + '</div>' : '') + '</div>';
 }

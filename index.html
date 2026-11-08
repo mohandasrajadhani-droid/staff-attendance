@@ -238,13 +238,23 @@ function celebHTML(list){
 }
 function fg(n){ return (Number(n) || 0).toFixed(3).replace(/\.?0+$/, '') ; }
 function fd(n){ return (Number(n) || 0).toFixed(2).replace(/\.?0+$/, ''); }
-function saleLine(c){ return (c.gold || c.diamond || c.bills) ? '<span class="lunch">💰 Gold ' + fg(c.gold) + ' g · Diamond ' + fd(c.diamond) + ' ct' + (c.bills ? ' · ' + c.bills + ' bills' : '') + '</span>' : ''; }
+function exParts(x){      // other ornament categories, only those with figures
+  if(!x) return [];
+  const p = [];
+  if(x.silver) p.push('Silver ' + fg(x.silver) + ' g');
+  if(x.pgold || x.pct) p.push('Precious ' + fg(x.pgold) + ' g + ' + fd(x.pct) + ' ct');
+  if(x.plat) p.push('Platinum ' + fg(x.plat) + ' g');
+  if(x.ugold || x.uct) p.push('Uncut ' + fg(x.ugold) + ' g + ' + fd(x.uct) + ' ct');
+  return p;
+}
+function exLine(x){ const p = exParts(x); return p.length ? '<span class="lunch">' + p.join(' · ') + '</span>' : ''; }
+function saleLine(c){ return (c.gold || c.diamond || c.bills || exParts(c.ex).length) ? '<span class="lunch">💰 Gold ' + fg(c.gold) + ' g · Diamond ' + fd(c.diamond) + ' ct' + (c.bills ? ' · ' + c.bills + ' bills' : '') + '</span>' + exLine(c.ex) : ''; }
 function salesHTML(d, title){
   const s = d.sales; if(!s || !s.linked) return '';
   const [y,m] = (d.month || d.today.slice(0,7)).split('-').map(Number);
   return '<div class="card"><b>' + (title || 'My sales') + '</b>' + (s.lastDate ? ' <span class="sub">· data up to ' + dmy(s.lastDate) + '</span>' : '') +
     '<div class="sale"><div>Gold today<b>' + fg(s.today.gold) + ' <i>g</i></b></div><div>Diamond today<b>' + fd(s.today.diamond) + ' <i>ct</i></b></div>' +
-    '<div>Gold · ' + MON[m-1].slice(0,3) + '<b>' + fg(s.month.gold) + ' <i>g</i></b></div><div>Diamond · ' + MON[m-1].slice(0,3) + '<b>' + fd(s.month.diamond) + ' <i>ct</i></b></div><div>Bills · ' + MON[m-1].slice(0,3) + '<b>' + (s.month.bills || 0) + '</b></div></div></div>';
+    '<div>Gold · ' + MON[m-1].slice(0,3) + '<b>' + fg(s.month.gold) + ' <i>g</i></b></div><div>Diamond · ' + MON[m-1].slice(0,3) + '<b>' + fd(s.month.diamond) + ' <i>ct</i></b></div><div>Bills · ' + MON[m-1].slice(0,3) + '<b>' + (s.month.bills || 0) + '</b></div></div>' + (exParts(s.month.ex).length ? '<div class="sub" style="margin-top:6px">' + MON[m-1].slice(0,3) + ': ' + exParts(s.month.ex).join(' · ') + '</div>' : '') + (exParts(s.today.ex).length ? '<div class="sub">Today: ' + exParts(s.today.ex).join(' · ') + '</div>' : '') + '</div>';
 }
 function renderAtt(d, stale){
   month = d.month;

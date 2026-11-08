@@ -71,6 +71,14 @@ textarea{min-height:76px;resize:vertical}
 .sale b i{font-style:normal;font-size:12px;color:var(--mute);font-weight:500}
 .chip.grey{background:#eee7da;color:var(--mute)}
 .lnk{background:none;border:0;color:var(--gold);font-weight:600;font-size:12px;padding:2px 0;display:block;margin:2px auto 0}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:8px 0;justify-items:center}
+.cal .dw{font-size:11px;color:var(--mute);font-weight:600}
+.cal .dd{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;border:2px solid transparent;background:#eef1f8;color:#7b87a3;padding:0;font-family:inherit}
+.cal .dd.P{background:#1d8a4e;color:#fff}.cal .dd.A{background:#c93a35;color:#fff}.cal .dd.L{background:#f2a31b;color:#fff}.cal .dd.O{background:#eef1f8;color:#9aa5bd}.cal .dd.F{background:#fff;border-color:#e2e8f4;color:#b3bccf}
+.cal .dd.sel{border-color:#2457f0;box-shadow:0 0 0 2px #fff inset}.cal .dd.td{background:#2457f0;color:#fff}
+.legend{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;font-size:11px;color:var(--mute);margin-top:12px}.legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px}
+.drow{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}.drow:last-child{border:0}.drow span{color:var(--mute)}.drow b{text-align:right}
+.vall{background:none;border:0;color:var(--gold);font-weight:600;font-size:13px;padding:0}
 .stale{background:#fff3d6;border:1px solid #e8cf93;border-radius:10px;padding:8px 12px;font-size:12px;margin-bottom:12px}
 .empty{text-align:center;color:var(--mute);padding:24px 0}
 .lv{padding:12px 0;border-bottom:1px solid var(--line);font-size:14px}
@@ -129,10 +137,14 @@ textarea{min-height:76px;resize:vertical}
         <div class="tile hi"><span>Present</span><b id="sPresent">0</b><small id="sPresentSub">days this month</small></div>
         <div class="tile"><span>Absent</span><b id="sLeave">0</b><small>no punch, no leave</small></div>
         <div class="tile"><span>On leave</span><b id="sOnLeave">0</b><small>approved</small></div>
-        <div class="tile"><span>Lunch over limit</span><b id="sLunch">0</b><small id="sHrs">0h</small></div>
+        <div class="tile"><span>Lunch over limit</span><b id="sLunch">0</b><small>this month</small></div>
       </div>
+      <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><b>This week</b><button class="vall" id="viewAll">View all</button></div><div class="cal" id="weekStrip"></div></div>
       <div class="stale hidden" id="stale"></div>
-      <div class="nav"><button id="prev">‹</button><b id="monthLbl"></b><button id="next">›</button></div>
+      <div class="nav" id="calTop"><button id="prev">‹</button><b id="monthLbl"></b><button id="next">›</button></div>
+      <div class="card"><div class="cal" id="monthCal"></div><div class="legend"><span><i style="background:#1d8a4e"></i>Present</span><span><i style="background:#c93a35"></i>Absent</span><span><i style="background:#f2a31b"></i>Leave</span><span><i style="background:#2457f0"></i>Today</span></div></div>
+      <div class="card" id="dayDetail"></div>
+      <div class="pghead" style="margin:4px 0 8px;color:var(--ink);font-size:15px">Daily log</div>
       <div class="card" id="list"></div>
       <div class="note">"Leave" = a working day with no punch and no approved leave. Tap <b>Apply</b> on that day to send a leave request. Shows raw machine punches; final attendance for salary is decided by the office.</div>
     </div>
@@ -297,6 +309,50 @@ function salesHTML(d, title){
     '<div class="sale"><div>Gold today<b>' + fg(s.today.gold) + ' <i>g</i></b></div><div>Diamond today<b>' + fd(s.today.diamond) + ' <i>ct</i></b></div>' +
     '<div>Gold · ' + MON[m-1].slice(0,3) + '<b>' + fg(s.month.gold) + ' <i>g</i></b></div><div>Diamond · ' + MON[m-1].slice(0,3) + '<b>' + fd(s.month.diamond) + ' <i>ct</i></b></div><div>Bills · ' + MON[m-1].slice(0,3) + '<b>' + (s.month.bills || 0) + '</b></div><div>Incentive today<b>' + inr(s.today.inc) + '</b></div><div>Incentive · ' + MON[m-1].slice(0,3) + '<b>' + inr(s.month.inc) + '</b></div></div>' + (exParts(s.month.ex).length ? '<div class="sub" style="margin-top:6px">' + MON[m-1].slice(0,3) + ': ' + exParts(s.month.ex).join(' · ') + '</div>' : '') + (exParts(s.today.ex).length ? '<div class="sub">Today: ' + exParts(s.today.ex).join(' · ') + '</div>' : '') + '</div>';
 }
+let selDay = null, lastCal = [], lastToday = '';
+const CLS = {'Present':'P','Absent':'A','On leave':'L','Leave pending':'L','Weekly off':'O','Holiday':'O'};
+function dotHTML(date, c, today){
+  const cls = date === today ? 'td' : (c ? (CLS[c.status] || 'F') : 'F');
+  return '<button class="dd ' + cls + (date === selDay ? ' sel' : '') + '" data-day="' + date + '">' + Number(date.slice(8)) + '</button>';
+}
+function renderCal(){
+  const by = {}; lastCal.forEach(c => by[c.date] = c);
+  const mo = month, [y,m] = mo.split('-').map(Number);
+  const first = new Date(Date.UTC(y, m-1, 1)), dim = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  let h = ['S','M','T','W','T','F','S'].map(x => '<span class="dw">' + x + '</span>').join('');
+  for(let i = 0; i < first.getUTCDay(); i++) h += '<span></span>';
+  for(let i = 1; i <= dim; i++){ const dt = mo + '-' + String(i).padStart(2,'0'); h += dotHTML(dt, by[dt], lastToday); }
+  $('monthCal').innerHTML = h;
+  // week strip (week containing today; uses whichever days are loaded)
+  const t = new Date(lastToday + 'T00:00:00Z'); const st = new Date(t); st.setUTCDate(t.getUTCDate() - t.getUTCDay());
+  let w = ['S','M','T','W','T','F','S'].map(x => '<span class="dw">' + x + '</span>').join('');
+  for(let i = 0; i < 7; i++){ const dd = new Date(st); dd.setUTCDate(st.getUTCDate() + i); const ds = dd.toISOString().slice(0,10); w += dotHTML(ds, by[ds], lastToday); }
+  $('weekStrip').innerHTML = w;
+  renderDayDetail();
+}
+function renderDayDetail(){
+  const c = lastCal.find(x => x.date === selDay);
+  if(!c){ $('dayDetail').innerHTML = '<div class="empty">Tap a date to see its details.</div>'; return; }
+  const dt = new Date(c.date + 'T00:00:00Z'), p = c.punches || [];
+  let h = '<b>' + DOW[dt.getUTCDay()] + ' ' + dt.getUTCDate() + ' ' + MON[dt.getUTCMonth()] + '</b>';
+  if(c.status === 'Present'){
+    const out = p.length > 1 ? esc(p[p.length-1]) : (c.date === lastToday ? 'still in' : 'no out punch');
+    h += '<div class="drow"><span>In / Out</span><b>' + esc(p[0]) + ' – ' + out + '</b></div>';
+    if(c.lunchOut) h += '<div class="drow"><span>Lunch</span><b>' + c.breakMin + ' min' + (c.over ? ' <span class="chip red">over</span>' : '') + '</b></div>';
+    const net = c.net != null ? c.net : (p.length > 1 ? toMin(p[p.length-1]) - toMin(p[0]) : null);
+    if(net != null) h += '<div class="drow"><span>Net hours</span><b>' + hm(net) + '</b></div>';
+  } else if(c.status === 'Absent'){
+    h += '<div class="drow"><span>Status</span><b><span class="chip red">Leave</span></b></div><button class="lnk" data-apply="' + c.date + '" style="margin:6px 0 0">Apply for this day</button>';
+  } else if(c.status === 'On leave'){
+    h += '<div class="drow"><span>Status</span><b><span class="chip green">On leave · ' + esc(c.leaveType) + '</span></b></div>';
+  } else if(c.status === 'Leave pending'){
+    h += '<div class="drow"><span>Status</span><b><span class="chip amber">Applied · waiting</span></b></div>';
+  } else {
+    h += '<div class="drow"><span>Status</span><b><span class="chip grey">' + esc(c.status || 'No punch yet') + '</span></b></div>';
+  }
+  const sl = saleLine(c); if(sl) h += '<div class="drow"><span>Sales</span><b>' + sl.replace(/<span class="lunch">💰 /,'').replace('</span>','') + '</b></div>';
+  $('dayDetail').innerHTML = h;
+}
 function renderAtt(d, stale){
   month = d.month;
   $('salesBox').innerHTML = salesHTML(d);
@@ -327,8 +383,11 @@ function renderAtt(d, stale){
   $('sPresent').textContent = s.present;
   $('sLeave').textContent = s.absent;
   $('sOnLeave').textContent = s.onLeave;
-  $('sHrs').textContent = Math.floor(s.minutes/60) + 'h worked';
+  $('sPresentSub').textContent = 'days · ' + Math.floor(s.minutes/60) + 'h worked';
   $('sLunch').textContent = s.lunchOver || 0;
+  lastCal = cal; lastToday = d.today;
+  if(!selDay || selDay.slice(0,7) !== d.month || !cal.find(x => x.date === selDay)) selDay = (d.month === d.today.slice(0,7)) ? d.today : (cal.length ? cal[cal.length-1].date : null);
+  renderCal();
   $('list').innerHTML = cal.length ? cal.slice().reverse().map(c => dayRow(c, d.today)).join('') : '<div class="empty">Nothing to show for this month yet.</div>';
 
   const st = $('stale');
@@ -418,16 +477,18 @@ $('refresh').onclick = load;
 $('prev').onclick = ()=>{ month = addMonth(month, -1); load(); };
 $('next').onclick = ()=>{ month = addMonth(month, 1); load(); };
 ['att','sales','leave','events','profile'].forEach(k => { $('tab-' + k).onclick = () => setTab(k); });
+document.addEventListener('click', e => { const b = e.target.closest('[data-day]'); if(b){ selDay = b.dataset.day; renderCal(); const dm = $('dayDetail'); if(dm.scrollIntoView && b.closest('#weekStrip')) dm.scrollIntoView({behavior:'smooth', block:'center'}); } });
+$('viewAll').onclick = () => $('calTop').scrollIntoView({behavior:'smooth'});
 $('out2').onclick = () => $('out').click();
 $('urlSave').onclick = ()=>{ const v = $('urlIn').value.trim(); if(/^https:\/\/script\.google\.com\//.test(v)){ LS.set('svcUrl', v); start(); } else alert('Paste the full Web App URL (starts with https://script.google.com/)'); };
 
 // "Apply for this day" on a leave row -> opens the form with that date filled in
-$('list').addEventListener('click', e => {
+['list','dayDetail'].forEach(id => $(id).addEventListener('click', e => {
   const b = e.target.closest('[data-apply]'); if(!b) return;
   $('lvFrom').value = b.dataset.apply; $('lvTo').value = b.dataset.apply;
   $('lvErr').textContent = ''; $('lvOk').textContent = '';
   setTab('leave'); $('lvReason').focus();
-});
+}));
 // cancel a pending request (tap twice to confirm)
 $('lvList').addEventListener('click', async e => {
   const b = e.target.closest('[data-cancel]'); if(!b) return;

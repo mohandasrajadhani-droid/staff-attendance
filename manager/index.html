@@ -120,6 +120,13 @@ input,select,textarea{width:100%;padding:12px;font-size:16px;border:1px solid va
 .sfm .acts{display:flex;gap:8px;margin-top:6px}.sfm .acts button{border:0;border-radius:9px;padding:7px 12px;font-weight:600;font-size:13px}
 .sfm .ap{background:#e0f2e7;color:var(--ok)}.sfm .rj{background:#fbe6e3;color:var(--bad)}
 #photoOv{position:fixed;inset:0;background:rgba(5,10,30,.92);z-index:60;display:flex;align-items:center;justify-content:center;padding:16px}#photoOv img{max-width:100%;max-height:100%;border-radius:16px}
+.sfBtn{width:100%;border:0;border-radius:14px;padding:14px;font-size:16px;font-weight:700;color:#fff;background:linear-gradient(135deg,#1743d8,#2f63ff);box-shadow:0 6px 16px rgba(36,87,240,.28);margin-top:4px}
+.sfRow{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}.sfRow:last-child{border:0}
+#sfOv{position:fixed;inset:0;background:#050a1e;z-index:50;display:flex;flex-direction:column;align-items:center;color:#fff;padding:calc(14px + env(safe-area-inset-top)) 16px calc(18px + env(safe-area-inset-bottom))}
+#sfOv video{width:100%;max-width:420px;aspect-ratio:3/4;object-fit:cover;border-radius:22px;background:#000;transform:scaleX(-1);margin-top:8px}
+#sfOv .sfMsg{margin:12px 0 4px;text-align:center;font-size:14px;color:#c9d4f5;min-height:38px}
+#sfOv .sfGo{width:100%;max-width:420px;border:0;border-radius:14px;padding:15px;font-size:17px;font-weight:700;background:#fff;color:#0b1636;margin-top:8px}
+#sfOv .sfGo:disabled{opacity:.45}#sfOv .sfX{background:none;border:0;color:#9fb0e6;margin-top:10px;font-size:15px}
 </style>
 </head>
 <body>
@@ -152,6 +159,7 @@ input,select,textarea{width:100%;padding:12px;font-size:16px;border:1px solid va
         <button id="dNext">›</button>
       </div>
       <div id="celebBox"></div>
+      <div id="selfiePunch"></div>
       <div id="selfieMgr"></div>
       <div class="tiles">
         <div><b id="cPresent">0</b>Present</div>
@@ -356,6 +364,60 @@ async function setBranchLocation(){
     alert(r && r.ok ? 'Saved for branch ' + r.branch + ' (staff must be within ' + r.radius + ' m).' : ((r && r.error) || 'Could not save.'));
   }, () => { b.disabled = false; b.textContent = '📍 Set this branch location here'; alert('Location not available. Turn on GPS and allow location for this app.'); }, {enableHighAccuracy: true, timeout: 20000, maximumAge: 0});
 }
+const SFP_WHY = {nogeo:'branch location not set', outside:'you are away from the branch', weakgps:'weak GPS signal', mock:'location looked fake', device:'a different phone than usual'};
+function deviceId(){ let d = LS.get('ms_dev'); if(!d){ d = 'd' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36); LS.set('ms_dev', d); } return d; }
+function renderSelfiePunch(d){
+  const m = d.mobile, box = $('selfiePunch');
+  if(!m || !m.allowed){ box.innerHTML = ''; return; }
+  const chips = {ok:'<span class="chip green">Done</span>', approved:'<span class="chip green">Approved</span>', pending:'<span class="chip amber">Waiting for manager</span>', rejected:'<span class="chip red">Rejected</span>'};
+  box.innerHTML = '<div class="card"><b>Selfie punch</b><div class="sub">' + (m.mode === 'any' ? 'Take a selfie from wherever you are to punch in / out' : 'Take a selfie at your branch to punch in / out') + '</div>' +
+    ((m.geoSet || m.mode === 'any') ? '' : '<div class="note" style="color:#a06a00">Branch location is not set yet, so punches will wait for your manager to approve.</div>') +
+    '<button class="sfBtn" id="sfOpen">📷 Punch with selfie</button>' +
+    (m.today.length ? '<div style="margin-top:10px">' + m.today.map(x => '<div class="sfRow"><b>' + esc(x.time) + '</b>' + (chips[x.status] || '') + '</div>').join('') + '</div>' : '') + '</div>';
+  $('sfOpen').onclick = openSelfie;
+}
+let sfStream = null;
+function closeSelfie(){ if(sfStream){ sfStream.getTracks().forEach(t => t.stop()); sfStream = null; } const o = $('sfOv'); if(o) o.remove(); }
+async function openSelfie(){
+  closeSelfie();
+  const ov = document.createElement('div'); ov.id = 'sfOv';
+  ov.innerHTML = '<b style="font-size:18px">Selfie punch</b><video id="sfVid" autoplay playsinline muted></video><div class="sfMsg" id="sfMsg">Starting camera and location…</div><button class="sfGo" id="sfGo" disabled>Take selfie &amp; punch</button><button class="sfX" id="sfX">Cancel</button>';
+  document.body.appendChild(ov);
+  $('sfX').onclick = closeSelfie;
+  let pos = null;
+  const setMsg = t => { const e = $('sfMsg'); if(e) e.innerHTML = t; };
+  const locate = () => new Promise(res => {
+    if(!navigator.geolocation){ res(null); return; }
+    navigator.geolocation.getCurrentPosition(p => res(p), () => res(null), {enableHighAccuracy: true, timeout: 20000, maximumAge: 0});
+  });
+  try{
+    sfStream = await navigator.mediaDevices.getUserMedia({video: {facingMode: 'user', width: {ideal: 720}, height: {ideal: 960}}, audio: false});
+    $('sfVid').srcObject = sfStream;
+  }catch(e){ setMsg('Camera is blocked. Allow Camera for this app in your phone settings, then try again.'); return; }
+  setMsg('Getting your location…');
+  pos = await locate();
+  if(!$('sfOv')) return;
+  if(!pos){ setMsg('Location not available. Turn on GPS / Location and allow it for this app, then tap Cancel and try again.'); return; }
+  setMsg('Location found (±' + Math.round(pos.coords.accuracy) + ' m). Face the camera and tap the button.');
+  $('sfGo').disabled = false;
+  $('sfGo').onclick = async () => {
+    $('sfGo').disabled = true; setMsg('Sending…');
+    const v = $('sfVid'), c = document.createElement('canvas'), w = 480, h = Math.round(w * (v.videoHeight || 640) / (v.videoWidth || 480));
+    c.width = w; c.height = h;
+    const ctx = c.getContext('2d'); ctx.translate(w, 0); ctx.scale(-1, 1); ctx.drawImage(v, 0, 0, w, h);
+    const photo = c.toDataURL('image/jpeg', 0.6);
+    try{
+      const r = await api({action: 'mobilePunch', photo, lat: pos.coords.latitude, lng: pos.coords.longitude, acc: pos.coords.accuracy, device: deviceId()});
+      if(!r.ok){ setMsg('<span style="color:#ff9b95">' + esc(r.error || 'Could not punch.') + '</span>'); $('sfGo').disabled = false; return; }
+      if(sfStream){ sfStream.getTracks().forEach(t => t.stop()); sfStream = null; }
+      const why = (r.reasons || []).map(x => SFP_WHY[x] || x).join(', ');
+      setMsg(r.status === 'ok' ? '<b style="font-size:20px;color:#7ee2a8">✓ Punched at ' + esc(r.time) + '</b><br>' + (r.anywhere ? 'Field punch recorded' : (r.dist != null ? r.dist + ' m from branch' : '')) :
+        '<b style="font-size:18px;color:#ffd27a">Sent for manager approval</b><br>Reason: ' + esc(why));
+      $('sfGo').textContent = 'Done'; $('sfGo').disabled = false; $('sfGo').onclick = () => { closeSelfie(); load(); };
+      $('sfX').remove();
+    }catch(e){ setMsg('<span style="color:#ff9b95">No internet. Please try again.</span>'); $('sfGo').disabled = false; }
+  };
+}
 function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function dmy(s){ const d = new Date(s + 'T00:00:00Z'); return d.getUTCDate() + ' ' + MON[d.getUTCMonth()].slice(0,3); }
 function longDate(s){ const d = new Date(s + 'T00:00:00Z'); return DOW[d.getUTCDay()] + ', ' + d.getUTCDate() + ' ' + MON[d.getUTCMonth()] + ' ' + d.getUTCFullYear(); }
@@ -394,6 +456,7 @@ function celebHTML(list){
     '<div class="crow"><span>' + (c.kind === 'birthday' ? '🎂 ' : '💍 ') + esc(c.name) + (c.me ? ' (you)' : '') + '<small>' + (c.kind === 'birthday' ? 'Birthday' : 'Wedding anniversary') + (c.dept ? ' · ' + esc(c.dept) : '') + '</small></span><span>' + when(c) + '</span></div>').join('') + '</div>';
 }
 function renderToday(){
+  renderSelfiePunch({mobile: data && data.mobile});
   if(data){ const nm=data.name||data.code||'Manager'; $('hdName').textContent=nm; $('hdAv').textContent=nm.trim().charAt(0).toUpperCase(); $('hdSub').textContent='Manager · '+(data.code||''); $('pfName').textContent=nm; $('pfAv').textContent=nm.trim().charAt(0).toUpperCase(); $('pfSub').textContent='Manager · '+(data.code||''); }
   const d = data; if(!d) return;
   $('celebBox').innerHTML = celebHTML(d.celebrations);

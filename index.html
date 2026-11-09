@@ -166,6 +166,7 @@ textarea{min-height:76px;resize:vertical}
     <div id="pane-profile" class="hidden">
       <div class="pghead">Profile</div>
       <div class="card" id="profCard"></div>
+      <div class="card"><b>Personal &amp; payroll details</b><div id="profDetails"></div></div>
       <div class="card">
         <div class="prow"><span>Incentive amounts</span><button class="incbtn" onclick="toggleInc()" style="font-size:12px;padding:5px 11px;border:1px solid #d6def0;border-radius:99px;background:#fff;color:inherit;cursor:pointer"></button></div>
         <button class="btn ghost" id="refresh">Refresh now</button>
@@ -238,6 +239,18 @@ function toMin(t){ const [h,m] = t.split(':').map(Number); return h*60 + m; }
 function addMonth(ym, d){ let [y,m] = ym.split('-').map(Number); m += d; while(m>12){m-=12;y++;} while(m<1){m+=12;y--;} return y + '-' + String(m).padStart(2,'0'); }
 function addDays(s, n){ const d = new Date(s + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0,10); }
 function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function dmyFull(s){ if(!s) return ''; const d = new Date(s + 'T00:00:00Z'); return isNaN(d) ? '' : String(d.getUTCDate()).padStart(2,'0') + '/' + String(d.getUTCMonth()+1).padStart(2,'0') + '/' + d.getUTCFullYear(); }
+let showAcc = false;
+function renderProfDetails(p){
+  p = p || {};
+  const row = (n, v, extra) => '<div class="prow"><span>' + n + '</span><b>' + (v ? esc(v) : '<i style="color:#9aa5bd;font-weight:400">Not added</i>') + (extra || '') + '</b></div>';
+  const acc = p.bankAcc ? (showAcc ? p.bankAcc : '••••••' + p.bankAcc.slice(-4)) : '';
+  $('profDetails').innerHTML = row('Date of birth', dmyFull(p.dob)) + row('Date of joining', dmyFull(p.doj)) + row('Bank', p.bankName) +
+    row('Account no.', acc, p.bankAcc ? ' <button class="vall" id="accTog">' + (showAcc ? 'Hide' : 'Show') + '</button>' : '') +
+    row('IFSC', p.ifsc) + row('PF UAN', p.uan) + row('ESI number', p.esi) +
+    '<div class="note">Wrong or missing? Ask the office to update it in Staff Master.</div>';
+  const t = $('accTog'); if(t) t.onclick = () => { showAcc = !showAcc; renderProfDetails(p); };
+}
 function dmy(s){ const d = new Date(s + 'T00:00:00Z'); return d.getUTCDate() + ' ' + MON[d.getUTCMonth()].slice(0,3); }
 
 async function api(body){
@@ -368,6 +381,7 @@ function renderAtt(d, stale){
   $('hello').textContent = 'Hello, ' + (d.name || d.code);
   $('hdName').textContent = d.name || d.code; $('hdAv').textContent = String(d.name || d.code || 'M').trim().charAt(0).toUpperCase();
   $('hdSub').textContent = [d.desig, d.dept].filter(Boolean).join(' · ') || 'Attendance & sales';
+  renderProfDetails(d.profile);
   $('profCard').innerHTML = '<div class="prow"><span>Name</span><b>' + esc(d.name || '') + '</b></div><div class="prow"><span>Staff code</span><b>' + esc(d.code) + '</b></div>' +
     (d.desig ? '<div class="prow"><span>Designation</span><b>' + esc(d.desig) + '</b></div>' : '') + (d.dept ? '<div class="prow"><span>Department</span><b>' + esc(d.dept) + '</b></div>' : '') +
     (d.branch ? '<div class="prow"><span>Branch</span><b>' + esc(d.branch) + '</b></div>' : '') + (d.phone ? '<div class="prow"><span>Phone</span><b>' + esc(d.phone) + '</b></div>' : '');

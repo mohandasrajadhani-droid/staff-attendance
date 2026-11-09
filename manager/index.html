@@ -247,6 +247,7 @@ input,select,textarea{width:100%;padding:12px;font-size:16px;border:1px solid va
         <div class="sub" id="pfSub"></div>
       </div>
       <div class="card">
+        <div id="profDetails"></div>
         <button class="btn ghost incbtn" onclick="toggleInc()" style="margin-top:0"></button>
         <button class="btn ghost" id="refresh">Refresh now</button>
         <button class="btn ghost" id="out2" style="color:var(--bad)">Sign out</button>
@@ -489,6 +490,18 @@ function poolHTML(d){
     row('Common pool', p.common) + row('Diamond common', p.diamond) + row('Special', p.special) + row('Manager diamond', p.manager) +
     '<div class="note">Based on your share and attendance; updated when the office pushes sales.</div></div>';
 }
+function dmyFull(s){ if(!s) return ''; const d = new Date(s + 'T00:00:00Z'); return isNaN(d) ? '' : String(d.getUTCDate()).padStart(2,'0') + '/' + String(d.getUTCMonth()+1).padStart(2,'0') + '/' + d.getUTCFullYear(); }
+let showAcc = false;
+function renderProfDetails(p){
+  p = p || {};
+  const row = (n, v, extra) => '<div class="prow"><span>' + n + '</span><b>' + (v ? esc(v) : '<i style="color:#9aa5bd;font-weight:400">Not added</i>') + (extra || '') + '</b></div>';
+  const acc = p.bankAcc ? (showAcc ? p.bankAcc : '••••••' + p.bankAcc.slice(-4)) : '';
+  $('profDetails').innerHTML = row('Date of birth', dmyFull(p.dob)) + row('Date of joining', dmyFull(p.doj)) + row('Bank', p.bankName) +
+    row('Account no.', acc, p.bankAcc ? ' <button class="vall" id="accTog">' + (showAcc ? 'Hide' : 'Show') + '</button>' : '') +
+    row('IFSC', p.ifsc) + row('PF UAN', p.uan) + row('ESI number', p.esi) +
+    '<div class="note">Wrong or missing? Ask the office to update it in Staff Master.</div>';
+  const t = $('accTog'); if(t) t.onclick = () => { showAcc = !showAcc; renderProfDetails(p); };
+}
 function salesHTML(d, title){
   const s = d.sales; if(!s) return '';
   if(!s.linked) return /sales/i.test(s.dept || '') ? '<div class="card"><b>' + (title || 'My sales') + '</b><div class="sub" style="margin-top:6px">Your billing-software Sales ID is not linked yet. Ask the office to add it in Staff Master (Sales software ID) and sync staff.</div></div>' : '';
@@ -554,7 +567,7 @@ function renderMe(d){
   } else { $('meIn').textContent = '--:--'; $('meOut').textContent = '--:--'; $('meHrs').textContent = '--'; }
   const [y,m] = d.month.split('-').map(Number);
   $('meLbl').textContent = MON[m-1] + ' ' + y;
-  $('meSales').innerHTML = salesHTML(d) + poolHTML(d);
+  $('meSales').innerHTML = salesHTML(d) + poolHTML(d); renderProfDetails(d.profile);
   $('meN').disabled = d.month >= d.today.slice(0,7);
   const sm = d.summary || {present:0, absent:0, onLeave:0, minutes:0};
   $('mePresent').textContent = sm.present; $('meAbs').textContent = sm.absent; $('meApp').textContent = sm.onLeave;

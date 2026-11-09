@@ -253,8 +253,8 @@ function renderSelfie(d){
   const m = d.mobile, box = $('selfieBox');
   if(!m || !m.allowed){ box.innerHTML = ''; return; }
   const chips = {ok:'<span class="chip green">Done</span>', approved:'<span class="chip green">Approved</span>', pending:'<span class="chip amber">Waiting for manager</span>', rejected:'<span class="chip red">Rejected</span>'};
-  box.innerHTML = '<div class="card"><b>Selfie punch</b><div class="sub">Take a selfie at your branch to punch in / out</div>' +
-    (m.geoSet ? '' : '<div class="note" style="color:#a06a00">Branch location is not set yet, so punches will wait for your manager to approve.</div>') +
+  box.innerHTML = '<div class="card"><b>Selfie punch</b><div class="sub">' + (m.mode === 'any' ? 'Take a selfie from wherever you are to punch in / out' : 'Take a selfie at your branch to punch in / out') + '</div>' +
+    ((m.geoSet || m.mode === 'any') ? '' : '<div class="note" style="color:#a06a00">Branch location is not set yet, so punches will wait for your manager to approve.</div>') +
     '<button class="sfBtn" id="sfOpen">📷 Punch with selfie</button>' +
     (m.today.length ? '<div style="margin-top:10px">' + m.today.map(x => '<div class="sfRow"><b>' + esc(x.time) + '</b>' + (chips[x.status] || '') + '</div>').join('') + '</div>' : '') + '</div>';
   $('sfOpen').onclick = openSelfie;
@@ -294,7 +294,7 @@ async function openSelfie(){
       if(!r.ok){ setMsg('<span style="color:#ff9b95">' + esc(r.error || 'Could not punch.') + '</span>'); $('sfGo').disabled = false; return; }
       if(sfStream){ sfStream.getTracks().forEach(t => t.stop()); sfStream = null; }
       const why = (r.reasons || []).map(x => SF_WHY[x] || x).join(', ');
-      setMsg(r.status === 'ok' ? '<b style="font-size:20px;color:#7ee2a8">✓ Punched at ' + esc(r.time) + '</b><br>' + (r.dist != null ? r.dist + ' m from branch' : '') :
+      setMsg(r.status === 'ok' ? '<b style="font-size:20px;color:#7ee2a8">✓ Punched at ' + esc(r.time) + '</b><br>' + (r.anywhere ? 'Field punch recorded' : (r.dist != null ? r.dist + ' m from branch' : '')) :
         '<b style="font-size:18px;color:#ffd27a">Sent for manager approval</b><br>Reason: ' + esc(why));
       $('sfGo').textContent = 'Done'; $('sfGo').disabled = false; $('sfGo').onclick = () => { closeSelfie(); load(); };
       $('sfX').remove();

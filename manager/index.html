@@ -12,7 +12,7 @@
 <meta name="apple-mobile-web-app-title" content="MS Manager">
 <link rel="icon" href="icon-192.png">
 <title>MS Manager</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <style>
 :root{--walnut:#0b1636;--gold:#2457f0;--paper:#f1f4fa;--ink:#14203d;--mute:#6a7690;--line:#e2e8f4;--ok:#1d8a4e;--bad:#c93a35;--warn:#a06a00;--blue:#2457f0;--card:#fff}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -587,6 +587,10 @@ async function loadMe(){
 async function load(){
   if(detail){ return loadDetail(); }
   $('refresh').disabled = true;
+  if(!data){            // paint the last saved screen straight away, then refresh from the server
+    const c0 = LS.get('mgr_cache');
+    if(c0){ try{ const o = JSON.parse(c0); data = o.d; date = o.d.date; renderToday(); renderLeaves(); showMain('view'); }catch(_){ data = null; } }
+  }
   try{
     const d = await api({action:'managerView', date: date || undefined});
     if(!d.ok){ if(authFail(d)) return; throw new Error(d.error || 'Server error'); }

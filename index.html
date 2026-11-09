@@ -12,7 +12,7 @@
 <meta name="apple-mobile-web-app-title" content="MS Attendance">
 <link rel="icon" href="icon-192.png">
 <title>MS Staff Attendance</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <style>
 :root{--walnut:#0b1636;--gold:#2457f0;--paper:#f1f4fa;--ink:#14203d;--mute:#6a7690;--line:#e2e8f4;--ok:#1d8a4e;--bad:#c93a35;--warn:#a06a00;--card:#fff}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -437,15 +437,21 @@ function render(d, stale){
   showMain('view');
 }
 
+let painted = false;
 async function load(){
   $('refresh').disabled = true;
+  if(!painted){          // show the last saved screen straight away, then refresh from the server
+    painted = true;
+    const c0 = LS.get('cache_' + (month || LS.get('cache_last') || ''));
+    if(c0){ try{ const o = JSON.parse(c0); render(o.d, null); }catch(_){ painted = false; } }
+  }
   try{
     const d = await api({action:'staffView', month: month});
     if(!d.ok){
       if(d.locked || /Wrong|Enter/.test(d.error || '')){ signOut(true); $('loginErr').textContent = d.error; return; }
       throw new Error(d.error || 'Server error');
     }
-    LS.set('cache_' + d.month, JSON.stringify({at: new Date().toLocaleString(), d}));
+    LS.set('cache_' + d.month, JSON.stringify({at: new Date().toLocaleString(), d})); LS.set('cache_last', d.month);
     render(d, null);
   }catch(e){
     const c = LS.get('cache_' + month);
@@ -457,7 +463,7 @@ async function load(){
 function signOut(keepMsg){
   LS.del('session');
   try{ Object.keys(localStorage).forEach(k => { if(k.indexOf('cache_') === 0) LS.del(k); }); }catch(e){}
-  session = null; $('pin').value = ''; month = null;
+  session = null; $('pin').value = ''; month = null; painted = false;
   if(keepMsg !== true) $('loginErr').textContent = '';
   showMain('login');
 }

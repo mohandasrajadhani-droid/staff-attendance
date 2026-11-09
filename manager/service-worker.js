@@ -13,10 +13,9 @@ self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return; // let Apps Script calls pass through
   e.respondWith(
-    fetch(req).then(res => {
-      const copy = res.clone();
-      caches.open(CACHE).then(c => c.put(req, copy));
-      return res;
-    }).catch(() => caches.match(req).then(r => r || caches.match('./index.html')))
+    caches.match(req).then(hit => {
+      const net = fetch(req).then(res => { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); return res; }).catch(() => hit || caches.match('./index.html'));
+      return hit || net;          // open instantly from cache, update in the background
+    })
   );
 });

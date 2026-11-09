@@ -98,6 +98,13 @@ textarea{min-height:76px;resize:vertical}
 .pghead{font-size:20px;font-weight:700;margin:6px 2px 12px}
 .prow{display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--line);font-size:14px}.prow:last-child{border:0}.prow span{color:var(--mute)}
 .hidden{display:none !important}
+.sfBtn{width:100%;border:0;border-radius:14px;padding:14px;font-size:16px;font-weight:700;color:#fff;background:linear-gradient(135deg,#1743d8,#2f63ff);box-shadow:0 6px 16px rgba(36,87,240,.28);margin-top:4px}
+.sfRow{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}.sfRow:last-child{border:0}
+#sfOv{position:fixed;inset:0;background:#050a1e;z-index:50;display:flex;flex-direction:column;align-items:center;color:#fff;padding:calc(14px + env(safe-area-inset-top)) 16px calc(18px + env(safe-area-inset-bottom))}
+#sfOv video{width:100%;max-width:420px;aspect-ratio:3/4;object-fit:cover;border-radius:22px;background:#000;transform:scaleX(-1);margin-top:8px}
+#sfOv .sfMsg{margin:12px 0 4px;text-align:center;font-size:14px;color:#c9d4f5;min-height:38px}
+#sfOv .sfGo{width:100%;max-width:420px;border:0;border-radius:14px;padding:15px;font-size:17px;font-weight:700;background:#fff;color:#0b1636;margin-top:8px}
+#sfOv .sfGo:disabled{opacity:.45}#sfOv .sfX{background:none;border:0;color:#9fb0e6;margin-top:10px;font-size:15px}
 </style>
 </head>
 <body>
@@ -139,6 +146,7 @@ textarea{min-height:76px;resize:vertical}
         <div class="tile"><span>On leave</span><b id="sOnLeave">0</b><small>approved</small></div>
         <div class="tile"><span>Lunch over limit</span><b id="sLunch">0</b><small>this month</small></div>
       </div>
+      <div id="selfieBox"></div>
       <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><b>This week</b><button class="vall" id="viewAll">View all</button></div><div class="cal" id="weekStrip"></div></div>
       <div class="stale hidden" id="stale"></div>
       <div class="nav" id="calTop"><button id="prev">‹</button><b id="monthLbl"></b><button id="next">›</button></div>
@@ -239,6 +247,60 @@ function toMin(t){ const [h,m] = t.split(':').map(Number); return h*60 + m; }
 function addMonth(ym, d){ let [y,m] = ym.split('-').map(Number); m += d; while(m>12){m-=12;y++;} while(m<1){m+=12;y--;} return y + '-' + String(m).padStart(2,'0'); }
 function addDays(s, n){ const d = new Date(s + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0,10); }
 function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+const SF_WHY = {nogeo:'branch location not set', outside:'you are away from the branch', weakgps:'weak GPS signal', mock:'location looked fake', device:'a different phone than usual'};
+function deviceId(){ let d = LS.get('ms_dev'); if(!d){ d = 'd' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36); LS.set('ms_dev', d); } return d; }
+function renderSelfie(d){
+  const m = d.mobile, box = $('selfieBox');
+  if(!m || !m.allowed){ box.innerHTML = ''; return; }
+  const chips = {ok:'<span class="chip green">Done</span>', approved:'<span class="chip green">Approved</span>', pending:'<span class="chip amber">Waiting for manager</span>', rejected:'<span class="chip red">Rejected</span>'};
+  box.innerHTML = '<div class="card"><b>Selfie punch</b><div class="sub">Take a selfie at your branch to punch in / out</div>' +
+    (m.geoSet ? '' : '<div class="note" style="color:#a06a00">Branch location is not set yet, so punches will wait for your manager to approve.</div>') +
+    '<button class="sfBtn" id="sfOpen">📷 Punch with selfie</button>' +
+    (m.today.length ? '<div style="margin-top:10px">' + m.today.map(x => '<div class="sfRow"><b>' + esc(x.time) + '</b>' + (chips[x.status] || '') + '</div>').join('') + '</div>' : '') + '</div>';
+  $('sfOpen').onclick = openSelfie;
+}
+let sfStream = null;
+function closeSelfie(){ if(sfStream){ sfStream.getTracks().forEach(t => t.stop()); sfStream = null; } const o = $('sfOv'); if(o) o.remove(); }
+async function openSelfie(){
+  closeSelfie();
+  const ov = document.createElement('div'); ov.id = 'sfOv';
+  ov.innerHTML = '<b style="font-size:18px">Selfie punch</b><video id="sfVid" autoplay playsinline muted></video><div class="sfMsg" id="sfMsg">Starting camera and location…</div><button class="sfGo" id="sfGo" disabled>Take selfie &amp; punch</button><button class="sfX" id="sfX">Cancel</button>';
+  document.body.appendChild(ov);
+  $('sfX').onclick = closeSelfie;
+  let pos = null;
+  const setMsg = t => { const e = $('sfMsg'); if(e) e.innerHTML = t; };
+  const locate = () => new Promise(res => {
+    if(!navigator.geolocation){ res(null); return; }
+    navigator.geolocation.getCurrentPosition(p => res(p), () => res(null), {enableHighAccuracy: true, timeout: 20000, maximumAge: 0});
+  });
+  try{
+    sfStream = await navigator.mediaDevices.getUserMedia({video: {facingMode: 'user', width: {ideal: 720}, height: {ideal: 960}}, audio: false});
+    $('sfVid').srcObject = sfStream;
+  }catch(e){ setMsg('Camera is blocked. Allow Camera for this app in your phone settings, then try again.'); return; }
+  setMsg('Getting your location…');
+  pos = await locate();
+  if(!$('sfOv')) return;
+  if(!pos){ setMsg('Location not available. Turn on GPS / Location and allow it for this app, then tap Cancel and try again.'); return; }
+  setMsg('Location found (±' + Math.round(pos.coords.accuracy) + ' m). Face the camera and tap the button.');
+  $('sfGo').disabled = false;
+  $('sfGo').onclick = async () => {
+    $('sfGo').disabled = true; setMsg('Sending…');
+    const v = $('sfVid'), c = document.createElement('canvas'), w = 480, h = Math.round(w * (v.videoHeight || 640) / (v.videoWidth || 480));
+    c.width = w; c.height = h;
+    const ctx = c.getContext('2d'); ctx.translate(w, 0); ctx.scale(-1, 1); ctx.drawImage(v, 0, 0, w, h);
+    const photo = c.toDataURL('image/jpeg', 0.6);
+    try{
+      const r = await api({action: 'mobilePunch', photo, lat: pos.coords.latitude, lng: pos.coords.longitude, acc: pos.coords.accuracy, device: deviceId()});
+      if(!r.ok){ setMsg('<span style="color:#ff9b95">' + esc(r.error || 'Could not punch.') + '</span>'); $('sfGo').disabled = false; return; }
+      if(sfStream){ sfStream.getTracks().forEach(t => t.stop()); sfStream = null; }
+      const why = (r.reasons || []).map(x => SF_WHY[x] || x).join(', ');
+      setMsg(r.status === 'ok' ? '<b style="font-size:20px;color:#7ee2a8">✓ Punched at ' + esc(r.time) + '</b><br>' + (r.dist != null ? r.dist + ' m from branch' : '') :
+        '<b style="font-size:18px;color:#ffd27a">Sent for manager approval</b><br>Reason: ' + esc(why));
+      $('sfGo').textContent = 'Done'; $('sfGo').disabled = false; $('sfGo').onclick = () => { closeSelfie(); load(); };
+      $('sfX').remove();
+    }catch(e){ setMsg('<span style="color:#ff9b95">No internet. Please try again.</span>'); $('sfGo').disabled = false; }
+  };
+}
 function dmyFull(s){ if(!s) return ''; const d = new Date(s + 'T00:00:00Z'); return isNaN(d) ? '' : String(d.getUTCDate()).padStart(2,'0') + '/' + String(d.getUTCMonth()+1).padStart(2,'0') + '/' + d.getUTCFullYear(); }
 let showAcc = false;
 function renderProfDetails(p){
@@ -381,7 +443,7 @@ function renderAtt(d, stale){
   $('hello').textContent = 'Hello, ' + (d.name || d.code);
   $('hdName').textContent = d.name || d.code; $('hdAv').textContent = String(d.name || d.code || 'M').trim().charAt(0).toUpperCase();
   $('hdSub').textContent = [d.desig, d.dept].filter(Boolean).join(' · ') || 'Attendance & sales';
-  renderProfDetails(d.profile);
+  renderProfDetails(d.profile); renderSelfie(d);
   $('profCard').innerHTML = '<div class="prow"><span>Name</span><b>' + esc(d.name || '') + '</b></div><div class="prow"><span>Staff code</span><b>' + esc(d.code) + '</b></div>' +
     (d.desig ? '<div class="prow"><span>Designation</span><b>' + esc(d.desig) + '</b></div>' : '') + (d.dept ? '<div class="prow"><span>Department</span><b>' + esc(d.dept) + '</b></div>' : '') +
     (d.branch ? '<div class="prow"><span>Branch</span><b>' + esc(d.branch) + '</b></div>' : '') + (d.phone ? '<div class="prow"><span>Phone</span><b>' + esc(d.phone) + '</b></div>' : '');

@@ -115,6 +115,11 @@ input,select,textarea{width:100%;padding:12px;font-size:16px;border:1px solid va
 #pane-me .lv button{margin-top:8px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:13px;color:var(--bad)}
 .okmsg{color:var(--ok);font-size:14px;margin-top:10px}
 .quota{background:var(--paper);border-radius:10px;padding:8px 10px;font-size:13px;color:var(--mute);margin-top:8px}
+.sfm .it{border-top:1px solid var(--line);padding:10px 0;display:flex;gap:10px;align-items:flex-start}
+.sfm .ph{width:62px;height:82px;border-radius:12px;background:#eef1f8;flex:none;object-fit:cover;border:0;color:var(--gold);font-size:11px;font-weight:600;padding:0}
+.sfm .acts{display:flex;gap:8px;margin-top:6px}.sfm .acts button{border:0;border-radius:9px;padding:7px 12px;font-weight:600;font-size:13px}
+.sfm .ap{background:#e0f2e7;color:var(--ok)}.sfm .rj{background:#fbe6e3;color:var(--bad)}
+#photoOv{position:fixed;inset:0;background:rgba(5,10,30,.92);z-index:60;display:flex;align-items:center;justify-content:center;padding:16px}#photoOv img{max-width:100%;max-height:100%;border-radius:16px}
 </style>
 </head>
 <body>
@@ -147,6 +152,7 @@ input,select,textarea{width:100%;padding:12px;font-size:16px;border:1px solid va
         <button id="dNext">›</button>
       </div>
       <div id="celebBox"></div>
+      <div id="selfieMgr"></div>
       <div class="tiles">
         <div><b id="cPresent">0</b>Present</div>
         <div><b id="cAbsent">0</b>Absent</div>
@@ -249,6 +255,7 @@ input,select,textarea{width:100%;padding:12px;font-size:16px;border:1px solid va
       <div class="card">
         <div id="profDetails"></div>
         <button class="btn ghost incbtn" onclick="toggleInc()" style="margin-top:0"></button>
+        <button class="btn ghost" id="geoBtn" onclick="setBranchLocation()">📍 Set this branch location here</button>
         <button class="btn ghost" id="refresh">Refresh now</button>
         <button class="btn ghost" id="out2" style="color:var(--bad)">Sign out</button>
       </div>
@@ -305,6 +312,50 @@ function hm(mins){ return Math.floor(mins/60) + 'h ' + String(mins%60).padStart(
 function toMin(t){ const [h,m] = t.split(':').map(Number); return h*60 + m; }
 function addMonth(ym, d){ let [y,m] = ym.split('-').map(Number); m += d; while(m>12){m-=12;y++;} while(m<1){m+=12;y--;} return y + '-' + String(m).padStart(2,'0'); }
 function addDays(s, n){ const d = new Date(s + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0,10); }
+const SF_WHY = {nogeo:'branch location not set', outside:'away from branch', weakgps:'weak GPS', mock:'fake location suspected', device:'different phone'};
+const SF_ST = {ok:'<span class="chip green">Auto-accepted</span>', approved:'<span class="chip green">Approved</span>', pending:'<span class="chip amber">Needs approval</span>', rejected:'<span class="chip red">Rejected</span>'};
+async function loadSelfies(){
+  const box = $('selfieMgr'); if(!session || !data) return;
+  try{
+    const r = await api({action:'mobileList', date: date || undefined});
+    if(!r.ok || (!r.rows.length && !r.pendingOther)){ box.innerHTML = ''; return; }
+    const pend = r.rows.filter(x => x.status === 'pending').length;
+    box.innerHTML = '<div class="card sfm"><b>Selfie punches</b> <span class="sub">· ' + r.rows.length + (pend ? ' · <b style="color:var(--warn)">' + pend + ' waiting</b>' : '') + '</span>' +
+      (r.pendingOther ? '<div class="note" style="color:var(--warn)">' + r.pendingOther + ' more waiting on other days</div>' : '') +
+      r.rows.map(x => '<div class="it"><button class="ph" data-photo="' + esc(x.id) + '">' + (x.hasPhoto ? 'Tap to view' : 'No photo') + '</button><div style="flex:1;min-width:0"><b>' + esc(x.name) + '</b> <span class="sub">' + esc(x.time) + '</span><div>' + (SF_ST[x.status] || '') + '</div>' +
+        '<div class="sub">' + (x.dist != null ? x.dist + ' m from branch' : 'branch location not set') + ' · GPS ±' + x.acc + ' m' + (x.reasons ? '<br>' + x.reasons.split(',').map(k => SF_WHY[k] || k).join(', ') : '') + '</div>' +
+        '<div class="acts">' + (x.status === 'pending' ? '<button class="ap" data-dec="approve" data-id="' + esc(x.id) + '">Approve</button>' : '') + (x.status !== 'rejected' ? '<button class="rj" data-dec="reject" data-id="' + esc(x.id) + '">Reject</button>' : '') + '</div></div></div>').join('') + '</div>';
+  }catch(e){ box.innerHTML = ''; }
+}
+document.addEventListener('click', async e => {
+  const p = e.target.closest('[data-photo]');
+  if(p){
+    p.textContent = '…';
+    const r = await api({action:'mobilePhoto', id: p.dataset.photo}).catch(() => null);
+    if(!r || !r.ok){ p.textContent = 'Not available'; return; }
+    p.textContent = '';
+    const ov = document.createElement('div'); ov.id = 'photoOv'; ov.innerHTML = '<img src="' + r.photo + '">'; ov.onclick = () => ov.remove(); document.body.appendChild(ov);
+    p.style.backgroundImage = 'url(' + r.photo + ')'; p.style.backgroundSize = 'cover';
+    return;
+  }
+  const d = e.target.closest('[data-dec]');
+  if(d){
+    if(d.dataset.dec === 'reject' && !confirm('Reject this punch? It will not count as attendance.')) return;
+    d.disabled = true;
+    const r = await api({action:'mobileDecide', id: d.dataset.id, decision: d.dataset.dec}).catch(() => null);
+    if(!r || !r.ok){ alert((r && r.error) || 'Could not save. Try again.'); d.disabled = false; return; }
+    load();
+  }
+});
+async function setBranchLocation(){
+  const b = $('geoBtn'); b.disabled = true; b.textContent = 'Getting location…';
+  navigator.geolocation.getCurrentPosition(async p => {
+    if(p.coords.accuracy > 60 && !confirm('GPS accuracy is only ±' + Math.round(p.coords.accuracy) + ' m. Save anyway? (Better: stand near the entrance with GPS on.)')){ b.disabled = false; b.textContent = '📍 Set this branch location here'; return; }
+    const r = await api({action:'setGeo', lat: p.coords.latitude, lng: p.coords.longitude, radius: 100}).catch(() => null);
+    b.disabled = false; b.textContent = '📍 Set this branch location here';
+    alert(r && r.ok ? 'Saved for branch ' + r.branch + ' (staff must be within ' + r.radius + ' m).' : ((r && r.error) || 'Could not save.'));
+  }, () => { b.disabled = false; b.textContent = '📍 Set this branch location here'; alert('Location not available. Turn on GPS and allow location for this app.'); }, {enableHighAccuracy: true, timeout: 20000, maximumAge: 0});
+}
 function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function dmy(s){ const d = new Date(s + 'T00:00:00Z'); return d.getUTCDate() + ' ' + MON[d.getUTCMonth()].slice(0,3); }
 function longDate(s){ const d = new Date(s + 'T00:00:00Z'); return DOW[d.getUTCDay()] + ', ' + d.getUTCDate() + ' ' + MON[d.getUTCMonth()] + ' ' + d.getUTCFullYear(); }
@@ -609,7 +660,7 @@ async function load(){
     if(!d.ok){ if(authFail(d)) return; throw new Error(d.error || 'Server error'); }
     data = d; date = d.date;
     LS.set('mgr_cache', JSON.stringify({at: new Date().toLocaleString(), d}));
-    renderToday(); renderLeaves();
+    renderToday(); renderLeaves(); loadSelfies();
     if(tab === 'me') loadMe();
     if(tab === 'sales') loadSales();
     $('upd').textContent = 'Updated ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) + ' · refreshes automatically';
@@ -639,7 +690,7 @@ $('go').onclick = async ()=>{
     if(!d.ok){ $('loginErr').textContent = d.error || 'Could not sign in.'; session = null; }
     else {
       if($('keep').checked) LS.set('session', JSON.stringify(session));
-      data = d; date = d.date; setTab('today'); renderToday(); renderLeaves(); showMain('view');
+      data = d; date = d.date; setTab('today'); renderToday(); renderLeaves(); showMain('view'); loadSelfies();
       $('upd').textContent = 'Updated ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) + ' · refreshes automatically';
     }
   }catch(e){ $('loginErr').textContent = 'Can\'t reach the server. Check your internet.'; session = null; }

@@ -36,6 +36,12 @@ jobs:
           npx cap init "MS Manager" com.msgold.managerattendance --web-dir=www
           npx cap add android
 
+      - name: Allow camera and location (selfie punch)
+        run: |
+          M=android/app/src/main/AndroidManifest.xml
+          sed -i 's#<application#<uses-permission android:name="android.permission.CAMERA" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <uses-feature android:name="android.hardware.camera" android:required="false" />\n    <uses-feature android:name="android.hardware.location.gps" android:required="false" />\n    <application#' $M
+          grep -n "CAMERA\|FINE_LOCATION" $M
+
       - name: Use our app icon
         continue-on-error: true      # if this step ever fails the app is still built, just with the default icon
         env:

@@ -520,7 +520,7 @@ async function load(){
   if(!painted){          // show the last saved screen straight away, then refresh from the server
     painted = true;
     const c0 = LS.get('cache_' + (month || LS.get('cache_last') || ''));
-    if(c0){ try{ const o = JSON.parse(c0); render(o.d, null); }catch(_){ painted = false; } }
+    if(c0){ const was = month; try{ const o = JSON.parse(c0); render(o.d, null); }catch(_){ painted = false; } month = was; }   // keep month unset so the server returns the current month
   }
   try{
     const d = await api({action:'staffView', month: month});

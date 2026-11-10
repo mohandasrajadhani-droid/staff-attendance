@@ -717,7 +717,7 @@ async function load(){
   $('refresh').disabled = true;
   if(!data){            // paint the last saved screen straight away, then refresh from the server
     const c0 = LS.get('mgr_cache');
-    if(c0){ try{ const o = JSON.parse(c0); data = o.d; date = o.d.date; renderToday(); renderLeaves(); showMain('view'); }catch(_){ data = null; } }
+    if(c0){ try{ const o = JSON.parse(c0); data = o.d; renderToday(); renderLeaves(); showMain('view'); }catch(_){ data = null; } }
   }
   try{
     const d = await api({action:'managerView', date: date || undefined});

@@ -650,11 +650,18 @@ function renderSales(d){
     : '<div class="empty">No staff have a Sales software ID yet.</div>';
 }
 async function loadSales(month){
+  const mk = 'sales_' + (month || smonth || 'cur');
+  try{                                       // show the last figures instantly, then refresh behind them
+    const c = JSON.parse(LS.get(mk) || 'null');
+    if(c && c.d && c.d.ok){ renderSales(c.d); $('upd').textContent = 'Showing saved figures from ' + c.at + ' · updating…'; }
+  }catch(e){}
   try{
     const d = await api({action:'managerSales', month: month || smonth || undefined});
     if(!d.ok){ if(authFail(d)) return; $('upd').textContent = d.error || 'Could not load'; return; }
     renderSales(d);
-  }catch(e){ $('upd').textContent = 'Can\'t reach the server.'; }
+    LS.set(mk, JSON.stringify({at: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}), d}));
+    $('upd').textContent = 'Sales updated ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  }catch(e){ $('upd').textContent = 'Can\'t reach the server — showing saved figures.'; }
 }
 /* ---------- My attendance tab ---------- */
 let meMonth = null, meCancel = null;
@@ -743,7 +750,7 @@ async function load(){
   }finally{ $('refresh').disabled = false; }
 }
 function signOut(keepMsg){
-  LS.del('session'); LS.del('mgr_cache');
+  LS.del('session'); LS.del('mgr_cache'); try{ Object.keys(localStorage).filter(k => k.indexOf('sales_') === 0).forEach(k => localStorage.removeItem(k)); }catch(e){}
   session = null; data = null; date = null; detail = null; meMonth = null; $('pin').value = '';
   if(keepMsg !== true) $('loginErr').textContent = '';
   showMain('login');

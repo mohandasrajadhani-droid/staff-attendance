@@ -363,6 +363,12 @@ function exParts(x){      // other ornament categories, only those with figures
   if(x.silver) p.push('Silver ' + fw(x.silver) + ' g');
   if(x.pgold || x.pct) p.push('Precious ' + fg(x.pgold) + ' g + ' + fd(x.pct) + ' ct');
   if(x.plat) p.push('Platinum ' + fg(x.plat) + ' g');
+  if(x.k18) p.push('18kt ' + fg(x.k18) + ' g');
+  if(x.k14) p.push('14kt ' + fg(x.k14) + ' g');
+  if(x.watch) p.push('Watch ₹' + Math.round(x.watch).toLocaleString('en-IN'));
+  if(x.coin) p.push('Coin ' + fg(x.coin) + ' g');
+  if(x.fancy) p.push('Fancy ' + Math.round(x.fancy) + ' pcs');
+  if(x.studex) p.push('Studex ' + Math.round(x.studex) + ' pcs');
   if(x.ugold || x.uct) p.push('Uncut ' + fg(x.ugold) + ' g + ' + fd(x.uct) + ' ct');
   return p;
 }
@@ -378,12 +384,12 @@ new MutationObserver(applyInc).observe(document.documentElement, {childList: tru
 function incBtn(){ return '<button class="incbtn" onclick="toggleInc()" style="float:right;font-size:12px;padding:3px 9px;border:1px solid #d8c8a4;border-radius:99px;background:#fff;color:inherit;cursor:pointer"></button>'; }
 function saleLine(c){ return (c.gold || c.diamond || c.bills || c.inc || exParts(c.ex).length) ? '<span class="lunch">💰 Gold ' + fw(c.gold) + ' g · Diamond ' + fd(c.diamond) + ' ct' + (c.bills ? ' · ' + c.bills + ' bills' : '') + '</span>' + exLine(c.ex) + (c.inc ? '<span class="lunch" style="font-weight:700">Incentive ' + inr(c.inc) + '</span>' : '') : ''; }
 function poolHTML(d){
-  const p = d.pool; if(!p || !p.total) return '';
+  const p = d.pool; if(!p || !(p.total || p.lineExp)) return '';
   const [y,m] = p.month.split('-').map(Number);
   const row = (n,v) => v ? '<div class="srow"><span>' + n + '</span><b>' + inr(v) + '</b></div>' : '';
-  return '<div class="card"><b>Common incentive</b> <span class="sub">· ' + MON[m-1].slice(0,3) + ' ' + y + '</span><div class="sale" style="grid-template-columns:1fr"><div>Your share this month<b>' + inr(p.total) + '</b></div></div>' +
-    row('Common pool', p.common) + row('Diamond common', p.diamond) + row('Special', p.special) + row('Manager diamond', p.manager) +
-    '<div class="note">Based on your share and attendance; updated when the office pushes sales.</div></div>';
+  return '<div class="card"><b>Common &amp; other incentives</b> <span class="sub">· ' + MON[m-1].slice(0,3) + ' ' + y + '</span><div class="sale" style="grid-template-columns:1fr"><div>Your share this month<b>' + inr(p.total) + '</b></div></div>' +
+    row('Common pool', p.common) + row('Diamond common', p.diamond) + row('Special', p.special) + row('Manager diamond', p.manager) + row('Scheme joining', p.scheme) + row('One-year plan', p.oneYear) + row('Rose tag', p.rose) +
+    (p.lineExp ? '<div class="srow"><span>Line expense (not incentive)</span><b>' + inr(p.lineExp) + '</b></div>' : '') + '<div class="note">Based on your share and attendance; updated when the office pushes sales.</div></div>';
 }
 function salesHTML(d, title){
   const s = d.sales; if(!s) return '';

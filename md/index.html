@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b1636">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MS MD">
+<link rel="icon" href="icon-192.png">
+<title>MS MD Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<style>
+:root{--navy:#0b1636;--blue:#2457f0;--paper:#f1f4fa;--ink:#14203d;--mute:#6a7690;--line:#e2e8f4;--ok:#1d8a4e;--bad:#c93a35;--warn:#a06a00;--card:#fff;--gold:#b8860b}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:Inter,system-ui,sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;padding-bottom:30px}
+header{background:radial-gradient(130% 160% at 0% 0%,#4a3fc4 0%,#12307f 34%,#070d2a 78%);color:#fff;padding:calc(14px + env(safe-area-inset-top)) 16px 26px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+header .who{display:flex;align-items:center;gap:11px;min-width:0}
+header .av{width:40px;height:40px;border-radius:12px;background:#fff;color:#0b1636;font-weight:800;font-size:16px;display:flex;align-items:center;justify-content:center;flex:none}
+header h1{font-size:17px;margin:0;font-weight:700;line-height:1.2}
+header small{display:block;color:#b9c6ee;font-size:12px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+header .btns{display:flex;gap:6px;flex:none}
+header button{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:10px;padding:7px 11px;font-size:13px}
+main{max-width:640px;margin:0 auto;padding:16px;margin-top:-10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:0 2px 10px rgba(20,32,61,.06);min-width:0}
+.card h2{margin:0 0 10px;font-size:15px;font-weight:700;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.card h2 small{font-size:12px;font-weight:500;color:var(--mute)}
+label{display:block;font-size:13px;color:var(--mute);margin:10px 0 4px}
+input{width:100%;padding:12px;font-size:16px;border:1px solid var(--line);border-radius:10px;font-family:inherit;color:var(--ink);background:#fff}
+.btn{width:100%;margin-top:14px;padding:13px;font-size:16px;font-weight:600;border:0;border-radius:12px;background:linear-gradient(135deg,#1743d8,#2f63ff);color:#fff}
+.btn:disabled{opacity:.6}
+.err{color:var(--bad);font-size:14px;margin-top:10px}
+.note{color:var(--mute);font-size:12px;margin-top:8px}
+.hidden{display:none!important}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:2px 0 8px;margin-bottom:6px}
+.chips button{flex:none;border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 13px;font-size:13px;color:var(--mute);font-weight:600}
+.chips button.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{border:0;background:#fff;padding:6px 12px;font-size:12.5px;color:var(--mute);font-weight:600}
+.seg button.on{background:var(--navy);color:#fff}
+.big{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.big b{font-size:34px;line-height:1.1}
+.big span{color:var(--mute);font-size:14px}
+.bar{height:8px;background:#e8edf8;border-radius:99px;overflow:hidden;margin-top:6px}
+.bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#1743d8,#4f86ff)}
+.bar.gold i{background:linear-gradient(90deg,#c9971a,#f1c75b)}
+.cat{margin-bottom:12px}
+.cat .t{display:flex;justify-content:space-between;font-size:13.5px;gap:8px}
+.cat .t span{color:var(--mute);white-space:nowrap}
+.alert{display:flex;gap:9px;align-items:flex-start;padding:9px 10px;border-radius:10px;font-size:13.5px;margin-bottom:7px;overflow-wrap:anywhere}
+.alert.red{background:#fbe6e3;color:#8f2420}
+.alert.amber{background:#fdf0d2;color:#7a5200}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
+.row:last-child{border:0}
+.row>div:first-child{min-width:0;flex:1 1 45%;overflow-wrap:anywhere}
+.row>div:last-child{text-align:right;flex:1 1 50%;min-width:0}
+.row small{display:block;color:var(--mute);font-size:12px;line-height:1.4}
+.chip{display:inline-block;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:600;white-space:nowrap}
+.chip.red{background:#fbe6e3;color:var(--bad)}.chip.green{background:#e0f2e7;color:var(--ok)}.chip.amber{background:#fdf0d2;color:var(--warn)}.chip.grey{background:#eef1f8;color:#51607f}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.kpi{background:var(--paper);border-radius:12px;padding:11px 10px;min-width:0}
+.kpi small{display:block;color:var(--mute);font-size:12px}
+.kpi b{display:block;font-size:22px;margin:2px 0;overflow-wrap:anywhere}
+.kpi b i{font-style:normal;font-size:12px;color:var(--mute);font-weight:500}
+.cmp{font-size:12px;font-weight:600}
+.cmp.up{color:var(--ok)}.cmp.down{color:var(--bad)}.cmp.flat{color:var(--mute)}
+h3{margin:14px 0 6px;font-size:13px;color:var(--mute);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+.rank{display:flex;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
+.rank:last-child{border:0}
+.rank .n{width:24px;height:24px;border-radius:50%;background:var(--navy);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none}
+.rank .n.g1{background:#c9971a}
+.rank .nm{flex:1;min-width:0;overflow-wrap:anywhere}
+.rank .nm small{display:block;color:var(--mute);font-size:12px}
+.rank .v{text-align:right;flex:none;font-weight:700}
+.rank .v small{display:block;color:var(--mute);font-weight:500;font-size:12px}
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:8px 6px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:#fff}
+th{color:var(--mute);font-weight:600;font-size:12px}
+.empty{color:var(--mute);font-size:13px;padding:6px 0}
+.stamp{text-align:center;color:var(--mute);font-size:12px;margin:4px 0 14px}
+</style>
+</head>
+<body>
+<header>
+  <div class="who"><div class="av">MD</div><div style="min-width:0"><h1 id="hdName">MD Dashboard</h1><small id="hdSub">MS Gold &amp; Diamonds</small></div></div>
+  <div class="btns"><button id="refresh" class="hidden" aria-label="Refresh">⟳</button><button id="out" class="hidden">Sign out</button></div>
+</header>
+<main>
+  <section id="setup" class="card hidden">
+    <b>One-time setup</b>
+    <label>Attendance service URL</label>
+    <input id="urlIn" placeholder="https://script.google.com/macros/s/.../exec">
+    <button class="btn" id="urlSave">Save</button>
+  </section>
+
+  <section id="login" class="card hidden">
+    <label>MD staff code</label>
+    <input id="code" autocapitalize="characters" autocomplete="username" placeholder="e.g. MD01">
+    <label>PIN</label>
+    <input id="pin" type="password" inputmode="numeric" autocomplete="current-password" placeholder="Your PIN">
+    <button class="btn" id="go">Sign in</button>
+    <div class="err" id="loginErr"></div>
+    <div class="note">Only staff set as Managing Director in HRMS can sign in here.</div>
+  </section>
+
+  <section id="view" class="hidden">
+    <div class="chips" id="brChips"></div>
+    <div class="card" id="alertsCard"><h2>Needs your attention</h2><div id="alerts"></div></div>
+
+    <div class="card">
+      <h2>Staff present today <small id="presDate"></small></h2>
+      <div class="big"><b id="presNum">–</b><span id="presOf"></span></div>
+      <div class="bar"><i id="presBar" style="width:0"></i></div>
+      <h3>By category</h3>
+      <div id="cats"></div>
+    </div>
+
+    <div class="card">
+      <h2>Floor managers today <small id="lateNote"></small></h2>
+      <div id="fms"></div>
+    </div>
+
+    <div class="card">
+      <h2>Sales</h2>
+      <div class="two" id="goldBox"></div>
+      <div class="two" id="diaBox" style="margin-top:10px"></div>
+      <div class="note" id="salesNote"></div>
+      <div id="targets"></div>
+    </div>
+
+    <div class="card">
+      <h2>Bills discounted <small>by floor managers</small></h2>
+      <div class="two" id="discBox"></div>
+      <div id="discList" style="margin-top:8px"></div>
+    </div>
+
+    <div class="card">
+      <h2>Top 5 sales staff <span class="seg" id="topSeg"><button data-p="month" class="on">This month</button><button data-p="today">Today</button></span></h2>
+      <h3>Gold</h3><div id="topGold"></div>
+      <h3>Diamond</h3><div id="topDia"></div>
+    </div>
+
+    <div class="card">
+      <h2>Branch comparison <small>this month</small></h2>
+      <div class="tw"><table id="brTable"></table></div>
+    </div>
+    <div class="stamp" id="stamp"></div>
+  </section>
+</main>
+
+<script>
+// ===== Apps Script Web App URL (same address as the Manager app) =====
+const SERVICE_URL = 'https://script.google.com/macros/s/AKfycbyGWnUbdocBmLrRAjzybXd9kspYfT2CV_gSHvUK5iRMdmsXUN31CNniamFifcb9G38R2A/exec';
+
+const LS = {get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }, set(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }, del(k){ try{ localStorage.removeItem(k); }catch(e){} }};
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const fw = n => Math.round(Number(n) || 0).toLocaleString('en-IN');                       // gold & silver: whole grams
+const fd = n => (Math.round((Number(n) || 0) * 100) / 100).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});   // diamond: 2 decimals
+const dmy = s => { const d = new Date(s + 'T00:00:00Z'); return d.getUTCDate() + ' ' + MON[d.getUTCMonth()]; };
+let session = null, D = null, branch = 'ALL', period = 'month', busy = false;
+
+function url(){ return SERVICE_URL || LS.get('svcUrl') || ''; }
+function showMain(id){
+  ['setup','login','view'].forEach(s => $(s).classList.toggle('hidden', s !== id));
+  $('out').classList.toggle('hidden', id !== 'view'); $('refresh').classList.toggle('hidden', id !== 'view');
+}
+async function api(body){
+  const res = await fetch(url(), {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(Object.assign({code: session.code, pin: session.pin}, body))});
+  return res.json();
+}
+
+/* ---------- numbers for the selected branch(es) ---------- */
+function pick(){ return D.branches.filter(b => branch === 'ALL' || b.branch === branch); }
+const sum = (arr, f) => arr.reduce((t, x) => t + f(x), 0);
+function metric(arr, k){ const o = {}; ['today','month','prev','prevSame'].forEach(f => { o[f] = sum(arr, x => x[k][f]); }); return o; }
+function cmpHTML(cur, base, lbl){
+  if(!base) return '<span class="cmp flat">' + (cur ? 'no data last month' : '—') + '</span>';
+  const p = (cur - base) / base * 100, cls = Math.abs(p) < 0.5 ? 'flat' : p > 0 ? 'up' : 'down';
+  return '<span class="cmp ' + cls + '">' + (p > 0.5 ? '▲ ' : p < -0.5 ? '▼ ' : '● ') + Math.abs(Math.round(p)) + '% ' + lbl + '</span>';
+}
+
+function render(){
+  if(!D) return;
+  const bs = pick();
+  $('hdName').textContent = D.name || 'MD Dashboard';
+  $('hdSub').textContent = 'MS Gold & Diamonds · ' + (branch === 'ALL' ? 'all branches' : branch);
+  // chips
+  $('brChips').innerHTML = ['ALL'].concat(D.branches.map(b => b.branch)).map(b => '<button data-b="' + esc(b) + '" class="' + (b === branch ? 'on' : '') + '">' + (b === 'ALL' ? 'All branches' : esc(b)) + '</button>').join('');
+  // alerts (branch-specific lines only when they name that branch)
+  const names = D.branches.map(b => b.branch), al = D.alerts.filter(a => branch === 'ALL' || a.text.indexOf(branch) > -1 || !names.some(n => a.text.indexOf(n) > -1));
+  $('alerts').innerHTML = al.length ? al.map(a => '<div class="alert ' + a.level + '"><span>' + (a.level === 'red' ? '⚠️' : '•') + '</span><span>' + esc(a.text) + '</span></div>').join('') : '<div class="empty">Nothing needs attention right now. ✓</div>';
+  // presence
+  const strength = sum(bs, x => x.strength), present = sum(bs, x => x.present), pc = strength ? Math.round(present / strength * 100) : 0;
+  $('presDate').textContent = dmy(D.today);
+  $('presNum').textContent = present; $('presOf').textContent = 'of ' + strength + ' staff · ' + pc + '%'; $('presBar').style.width = pc + '%';
+  $('cats').innerHTML = D.cats.map(c => {
+    const t = sum(bs, x => (x.cats[c] || {}).total || 0), p = sum(bs, x => (x.cats[c] || {}).present || 0), q = t ? Math.round(p / t * 100) : 0;
+    return '<div class="cat"><div class="t"><b>' + esc(c) + '</b><span>' + p + ' / ' + t + ' · ' + q + '%</span></div><div class="bar"><i style="width:' + q + '%"></i></div></div>';
+  }).join('');
+  // floor managers
+  const fms = D.floorManagers.filter(f => branch === 'ALL' || f.branch === branch);
+  $('lateNote').textContent = 'late after ' + D.lateAfter;
+  const st = f => f.status === 'Present' ? (f.late ? '<span class="chip amber">Late +' + f.lateMin + ' min</span>' : '<span class="chip green">On time</span>')
+    : f.status === 'Absent' ? '<span class="chip red">Absent</span>' : (f.status === 'On leave' || f.status === 'Leave pending') ? '<span class="chip grey">Leave · ' + esc(f.leaveType) + '</span>'
+    : f.status === 'Not in yet' ? '<span class="chip red">Not in yet</span>' : '<span class="chip grey">' + esc(f.status) + '</span>';
+  $('fms').innerHTML = fms.length ? fms.map(f => '<div class="row"><div><b>' + esc(f.name) + '</b><small>' + esc(f.branch) + '</small></div><div>' + st(f) +
+    '<small>' + (f.first ? 'In ' + esc(f.first) + (f.last ? ' · Out ' + esc(f.last) : '') : 'No punch') + '</small></div></div>').join('') : '<div class="empty">No floor managers in this selection. Set the designation to “Floor Manager” in HRMS Staff Master.</div>';
+  // sales
+  const g = metric(bs, 'gold'), d = metric(bs, 'diamond'), bl = metric(bs, 'bills');
+  const kpi = (lbl, v, u, extra, f) => '<div class="kpi"><small>' + lbl + '</small><b>' + f(v) + ' <i>' + u + '</i></b>' + (extra || '') + '</div>';
+  $('goldBox').innerHTML = kpi('Gold today', g.today, 'g', '', fw) + kpi('Gold this month', g.month, 'g', cmpHTML(g.month, g.prevSame, 'vs last month so far') + '<small>Last month total ' + fw(g.prev) + ' g</small>', fw);
+  $('diaBox').innerHTML = kpi('Diamond today', d.today, 'ct', '', fd) + kpi('Diamond this month', d.month, 'ct', cmpHTML(d.month, d.prevSame, 'vs last month so far') + '<small>Last month total ' + fd(d.prev) + ' ct</small>', fd);
+  $('salesNote').textContent = 'Bills: ' + fw(bl.today) + ' today · ' + fw(bl.month) + ' this month (' + fw(bl.prev) + ' last month). ' + (D.lastSalesDate ? 'Sales data up to ' + dmy(D.lastSalesDate) + '.' : 'No sales data yet.');
+  const tg = {gold: sum(bs, x => x.target.gold), diamond: sum(bs, x => x.target.diamond)};
+  let th = '';
+  [['Gold target', g.month, tg.gold, 'g', fw, 'gold'], ['Diamond target', d.month, tg.diamond, 'ct', fd, '']].forEach(a => {
+    if(!a[2]) return; const p = Math.round(a[1] / a[2] * 100);
+    th += '<div class="cat" style="margin-top:12px"><div class="t"><b>' + a[0] + '</b><span>' + a[4](a[1]) + ' / ' + a[4](a[2]) + ' ' + a[3] + ' · ' + p + '%</span></div><div class="bar ' + a[5] + '"><i style="width:' + Math.min(100, p) + '%"></i></div></div>';
+  });
+  $('targets').innerHTML = th || '<div class="note">Monthly targets are set in HRMS → Sales → MD App targets.</div>';
+  // discount bills
+  const ds = metric(bs, 'disc');
+  $('discBox').innerHTML = '<div class="kpi"><small>Today</small><b>' + fw(ds.today) + '</b></div><div class="kpi"><small>This month</small><b>' + fw(ds.month) + '</b>' + cmpHTML(ds.month, ds.prevSame, 'vs last month so far') + '<small>Last month total ' + fw(ds.prev) + '</small></div>';
+  const dl = fms.filter(f => f.discMonth || f.discToday);
+  $('discList').innerHTML = dl.length ? dl.map(f => '<div class="row"><div><b>' + esc(f.name) + '</b><small>' + esc(f.branch) + '</small></div><div><b>' + f.discMonth + '</b> this month<small>' + f.discToday + ' today</small></div></div>').join('') : '<div class="empty">No discounted bills recorded. Add discount_bills and discount_by columns to the sales Excel.</div>';
+  // top 5
+  const top = branch === 'ALL' ? D.top[period] : ((bs[0] || {}).top || D.top)[period];
+  const rk = (arr, key) => arr && arr.length ? arr.map((p, i) => '<div class="rank"><span class="n' + (i === 0 ? ' g1' : '') + '">' + (i + 1) + '</span><div class="nm"><b>' + esc(p.name) + '</b><small>' + esc(p.branch) + '</small></div><div class="v">' + (key === 'gold' ? fw(p.gold) + ' g<small>' + fd(p.diamond) + ' ct</small>' : fd(p.diamond) + ' ct<small>' + fw(p.gold) + ' g</small>') + '</div></div>').join('') : '<div class="empty">No sales yet.</div>';
+  $('topGold').innerHTML = rk(top.gold, 'gold'); $('topDia').innerHTML = rk(top.diamond, 'diamond');
+  document.querySelectorAll('#topSeg button').forEach(b => b.classList.toggle('on', b.dataset.p === period));
+  // branch table
+  const pct = (a, b) => b ? Math.round(a / b * 100) + '%' : '–';
+  $('brTable').innerHTML = '<thead><tr><th>Branch</th><th>Present</th><th>Gold today</th><th>Gold month</th><th>Dia month</th><th>Gold tgt</th><th>Dia tgt</th></tr></thead><tbody>' +
+    D.branches.map(b => '<tr><td><b>' + esc(b.branch) + '</b></td><td>' + b.present + '/' + b.strength + '</td><td>' + fw(b.gold.today) + '</td><td>' + fw(b.gold.month) + '</td><td>' + fd(b.diamond.month) + '</td><td>' + pct(b.gold.month, b.target.gold) + '</td><td>' + pct(b.diamond.month, b.target.diamond) + '</td></tr>').join('') +
+    '</tbody><tfoot><tr><td><b>All</b></td><td>' + D.totals.present + '/' + D.totals.strength + '</td><td>' + fw(D.totals.gold.today) + '</td><td>' + fw(D.totals.gold.month) + '</td><td>' + fd(D.totals.diamond.month) + '</td><td>' + pct(D.totals.gold.month, D.totals.target.gold) + '</td><td>' + pct(D.totals.diamond.month, D.totals.target.diamond) + '</td></tr></tfoot>';
+}
+
+/* ---------- loading ---------- */
+function authFail(d){
+  if(d.locked || d.notManager || /Wrong|Enter/.test(d.error || '')){ signOut(true); $('loginErr').textContent = d.error; return true; }
+  return false;
+}
+async function load(){
+  if(busy || !session) return; busy = true;
+  try{
+    const c = JSON.parse(LS.get('md_cache') || 'null');                       // show the last figures straight away
+    if(!D && c && c.d && c.d.ok){ D = c.d; render(); $('stamp').textContent = 'Saved figures from ' + c.at + ' · updating…'; }
+  }catch(e){}
+  try{
+    const d = await api({action: 'mdOverview'});
+    if(!d.ok){ if(authFail(d)) return; $('stamp').textContent = d.error || 'Could not load'; return; }
+    D = d; render();
+    const at = new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+    $('stamp').textContent = 'Updated ' + at; LS.set('md_cache', JSON.stringify({at, d}));
+  }catch(e){ $('stamp').textContent = D ? 'Can\'t reach the server — showing saved figures.' : 'Can\'t reach the server. Check your internet.'; }
+  finally{ busy = false; }
+}
+function signOut(silent){
+  LS.del('md_session'); LS.del('md_cache'); session = null; D = null; branch = 'ALL';
+  showMain(url() ? 'login' : 'setup'); if(!silent) $('loginErr').textContent = '';
+}
+async function signIn(){
+  const code = $('code').value.trim(), pin = $('pin').value.trim();
+  if(!code || !pin){ $('loginErr').textContent = 'Enter your code and PIN.'; return; }
+  $('go').disabled = true; $('loginErr').textContent = '';
+  session = {code, pin};
+  try{
+    const d = await api({action: 'mdOverview'});
+    if(!d.ok){ session = null; $('loginErr').textContent = d.error || 'Could not sign in.'; return; }
+    LS.set('md_session', JSON.stringify(session)); D = d; showMain('view'); render();
+    $('stamp').textContent = 'Updated ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}); LS.set('md_cache', JSON.stringify({at: new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}), d}));
+  }catch(e){ session = null; $('loginErr').textContent = 'Can\'t reach the server. Check your internet.'; }
+  finally{ $('go').disabled = false; }
+}
+
+$('go').onclick = signIn; $('pin').onkeydown = e => { if(e.key === 'Enter') signIn(); };
+$('out').onclick = () => signOut(false); $('refresh').onclick = () => { $('stamp').textContent = 'Updating…'; load(); };
+$('urlSave').onclick = () => { const v = $('urlIn').value.trim(); if(/^https:\/\//.test(v)){ LS.set('svcUrl', v); showMain('login'); } else alert('Paste the full web address (starts with https://)'); };
+$('brChips').onclick = e => { const b = e.target.closest('button'); if(b){ branch = b.dataset.b; render(); } };
+$('topSeg').onclick = e => { const b = e.target.closest('button'); if(b){ period = b.dataset.p; render(); } };
+setInterval(() => { if(session && !document.hidden) load(); }, 120000);
+document.addEventListener('visibilitychange', () => { if(!document.hidden && session) load(); });
+
+(function start(){
+  if(!url()){ showMain('setup'); return; }
+  let s = null; try{ s = JSON.parse(LS.get('md_session') || 'null'); }catch(e){}
+  if(s && s.code && s.pin){
+    session = s; showMain('view');
+    try{ const c = JSON.parse(LS.get('md_cache') || 'null'); if(c && c.d && c.d.ok){ D = c.d; render(); $('stamp').textContent = 'Saved figures from ' + c.at + ' · updating…'; } }catch(e){}
+    load();
+  } else showMain('login');
+})();
+if('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) navigator.serviceWorker.register('service-worker.js').catch(() => {});
+</script>
+</body>
+</html>

@@ -66,13 +66,16 @@ input,select,textarea{width:100%;padding:12px;font-size:16px;border:1px solid va
 .celeb .crow:last-child{border:0}
 .celeb .crow small{display:block;color:var(--mute);font-size:12px}
 .sale{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
-.sale div{background:var(--paper);border-radius:10px;padding:10px 6px;text-align:center;font-size:12px;color:var(--mute)}
+.sale div{min-width:0;overflow-wrap:anywhere;background:var(--paper);border-radius:10px;padding:10px 6px;text-align:center;font-size:12px;color:var(--mute)}
 .sale b{display:block;font-size:19px;color:var(--ink);margin-top:2px}
 .sale b i{font-style:normal;font-size:12px;color:var(--mute);font-weight:500}
 .srow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
 .srow:last-child{border:0}
 .srow small{display:block;color:var(--mute);font-size:12px}
-.srow .v{text-align:right;white-space:nowrap}
+.srow>div:first-child{min-width:0;flex:1 1 40%;overflow-wrap:anywhere}
+.srow .v{text-align:right;white-space:normal;flex:1 1 55%;min-width:0;overflow-wrap:anywhere}
+.srow .v b{white-space:nowrap}
+.srow .v small{line-height:1.45}
 .sale .incbtn{grid-column:1/-1;order:9;float:none!important;justify-self:end}
 .chip.grey{background:#eee7da;color:var(--mute)}
 .empty{text-align:center;color:var(--mute);padding:24px 0}

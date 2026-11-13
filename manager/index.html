@@ -253,15 +253,15 @@ input,select,textarea{width:100%;padding:12px;font-size:16px;border:1px solid va
         <button id="sNext" style="background:#fff;border:1px solid var(--line);border-radius:8px;padding:8px 14px;font-size:16px">›</button>
       </div>
       <div class="card"><b>Total sales</b><div class="sale" id="salesTotals"></div><div class="note" id="salesNote"></div></div>
-      <div class="card"><b>Date-wise report</b> <span class="sub">· pick a date or a range</span>
+      <div class="card"><b>Daily sales</b> <span class="sub">· all items except Studex and Fancy · tap a day to see who sold</span><div id="dailyList"></div></div>
+      <div class="card"><b>By salesperson</b> <span class="sub">· highest gold first</span>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin:8px 0">
-          <label style="font-size:12px;color:var(--mut)">From<br><input type="date" id="dwFrom" style="padding:7px;border:1px solid var(--line);border-radius:8px"></label>
-          <label style="font-size:12px;color:var(--mut)">To<br><input type="date" id="dwTo" style="padding:7px;border:1px solid var(--line);border-radius:8px"></label>
+          <label style="font-size:12px;color:var(--mut)">From date<br><input type="date" id="dwFrom" style="padding:7px;border:1px solid var(--line);border-radius:8px"></label>
+          <label style="font-size:12px;color:var(--mut)">To date<br><input type="date" id="dwTo" style="padding:7px;border:1px solid var(--line);border-radius:8px"></label>
           <button id="dwGo" style="background:var(--blue,#2457f0);color:#fff;border:0;border-radius:8px;padding:9px 16px;font-weight:600">Show</button>
+          <button id="dwClr" class="hidden" style="background:#fff;border:1px solid var(--line);border-radius:8px;padding:9px 12px;font-weight:600">Full month</button>
         </div>
-        <div id="dwOut"></div></div>
-      <div class="card"><b>Daily sales</b> <span class="sub">· all items except Studex and Fancy · tap a day for details</span><div id="dailyList"></div></div>
-      <div class="card"><b>By salesperson</b> <span class="sub">· highest gold first</span><div id="salesList"></div></div>
+        <div id="dwOut" class="hidden"></div><div id="salesList"></div></div>
     </div>
 
     <!-- ===== Profile tab ===== -->
@@ -801,11 +801,11 @@ $('tab-sales').onclick = () => { setTab('sales'); loadSales(); };
 /* date-wise report */
 function dmyF(d){ return d.slice(8) + '/' + d.slice(5,7) + '/' + d.slice(0,4); }
 async function loadDateReport(from, to){
-  const out = $('dwOut'); out.innerHTML = '<div class="empty">Loading…</div>';
+  const out = $('dwOut'); out.classList.remove('hidden'); out.innerHTML = '<div class="empty">Loading…</div>';
   try{
     const d = await api({action:'managerSalesDate', from: from, to: to});
     if(!d.ok){ if(authFail(d)) return; out.innerHTML = '<div class="empty">' + esc(d.error || 'Could not load') + '</div>'; return; }
-    $('dwFrom').value = d.from; $('dwTo').value = d.to;
+    $('dwFrom').value = d.from; $('dwTo').value = d.to; $('salesList').classList.add('hidden'); out.classList.remove('hidden'); $('dwClr').classList.remove('hidden');
     const tp = exParts(d.totals.ex, true);
     out.innerHTML = '<div class="sale"><div>Gold<b>' + fw(d.totals.gold) + ' <i>g</i></b></div><div>Diamond<b>' + fd(d.totals.diamond) + ' <i>ct</i></b></div><div>Bills<b>' + (d.totals.bills || 0) + '</b></div></div>' +
       '<div class="note">' + (d.from === d.to ? dmyF(d.from) : dmyF(d.from) + ' to ' + dmyF(d.to)) + (tp.length ? ' · ' + tp.join(' · ') : '') + ' · Studex and Fancy not included</div>' +
@@ -814,8 +814,9 @@ async function loadDateReport(from, to){
           '<div class="v"><b>' + fw(s.gold) + ' g</b><small>' + fd(s.diamond) + ' ct · ' + (s.bills || 0) + ' bills</small>' + (ps.length ? '<small>' + ps.join(' · ') + '</small>' : '') + '</div></div>'; }).join('') : '<div class="empty">No sales on these dates.</div>');
   }catch(e){ out.innerHTML = '<div class="empty">Can\'t reach the server.</div>'; }
 }
+$('dwClr').onclick = () => { $('dwOut').classList.add('hidden'); $('dwOut').innerHTML = ''; $('salesList').classList.remove('hidden'); $('dwClr').classList.add('hidden'); $('dwFrom').value = ''; $('dwTo').value = ''; };
 $('dwGo').onclick = () => { const f = $('dwFrom').value, t = $('dwTo').value || f; if(f) loadDateReport(f, t); };
-$('dailyList').addEventListener('click', ev => { const r = ev.target.closest('[data-d]'); if(r){ loadDateReport(r.dataset.d, r.dataset.d); $('dwOut').scrollIntoView({behavior:'smooth', block:'center'}); } });
+$('dailyList').addEventListener('click', ev => { const r = ev.target.closest('[data-d]'); if(r){ loadDateReport(r.dataset.d, r.dataset.d); $('dwFrom').scrollIntoView({behavior:'smooth', block:'center'}); } });
 $('sPrev').onclick = () => loadSales(addMonth(smonth, -1));
 $('sNext').onclick = () => loadSales(addMonth(smonth, 1));
 $('salesList').addEventListener('click', e => { const p = e.target.closest('[data-staff]'); if(p) openDetail(p.dataset.staff); });

@@ -253,6 +253,14 @@ input,select,textarea{width:100%;padding:12px;font-size:16px;border:1px solid va
         <button id="sNext" style="background:#fff;border:1px solid var(--line);border-radius:8px;padding:8px 14px;font-size:16px">›</button>
       </div>
       <div class="card"><b>Total sales</b><div class="sale" id="salesTotals"></div><div class="note" id="salesNote"></div></div>
+      <div class="card"><b>Date-wise report</b> <span class="sub">· pick a date or a range</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin:8px 0">
+          <label style="font-size:12px;color:var(--mut)">From<br><input type="date" id="dwFrom" style="padding:7px;border:1px solid var(--line);border-radius:8px"></label>
+          <label style="font-size:12px;color:var(--mut)">To<br><input type="date" id="dwTo" style="padding:7px;border:1px solid var(--line);border-radius:8px"></label>
+          <button id="dwGo" style="background:var(--blue,#2457f0);color:#fff;border:0;border-radius:8px;padding:9px 16px;font-weight:600">Show</button>
+        </div>
+        <div id="dwOut"></div></div>
+      <div class="card"><b>Daily sales</b> <span class="sub">· all items except Studex and Fancy · tap a day for details</span><div id="dailyList"></div></div>
       <div class="card"><b>By salesperson</b> <span class="sub">· highest gold first</span><div id="salesList"></div></div>
     </div>
 
@@ -580,7 +588,7 @@ async function loadDetail(month){
 function fg(n){ return (Number(n) || 0).toFixed(3).replace(/\.?0+$/, ''); }
 function fw(n){ return Math.round(Number(n) || 0).toLocaleString('en-IN'); }
 function fd(n){ return (Number(n) || 0).toFixed(2).replace(/\.?0+$/, ''); }
-function exParts(x){      // other ornament categories, only those with figures
+function exParts(x, noFS){      // other ornament categories, only those with figures (noFS: leave out fancy and studex)
   if(!x) return [];
   const p = [];
   if(x.silver) p.push('Silver ' + fw(x.silver) + ' g');
@@ -590,8 +598,8 @@ function exParts(x){      // other ornament categories, only those with figures
   if(x.k14) p.push('14kt ' + fg(x.k14) + ' g');
   if(x.watch) p.push('Watch ₹' + Math.round(x.watch).toLocaleString('en-IN'));
   if(x.coin) p.push('Coin ' + fg(x.coin) + ' g');
-  if(x.fancy) p.push('Fancy ' + Math.round(x.fancy) + ' pcs');
-  if(x.studex) p.push('Studex ' + Math.round(x.studex) + ' pcs');
+  if(x.fancy && !noFS) p.push('Fancy ' + Math.round(x.fancy) + ' pcs');
+  if(x.studex && !noFS) p.push('Studex ' + Math.round(x.studex) + ' pcs');
   if(x.ugold || x.uct) p.push('Uncut ' + fg(x.ugold) + ' g + ' + fd(x.uct) + ' ct');
   return p;
 }
@@ -647,9 +655,13 @@ function renderSales(d){
   else w += 'No sales have been pasted into the Sales tab yet.';
   if(d.unmapped && d.unmapped.length) w += ' <span class="warn">Sales IDs with no staff linked: ' + d.unmapped.map(esc).join(', ') + ' — add them in HRMS (Sales software ID).</span>';
   $('salesNote').innerHTML = w;
+  const WD = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  $('dailyList').innerHTML = (d.daily && d.daily.length) ? d.daily.map(x => { const dt = new Date(x.date + 'T00:00:00Z'), ps = exParts(x.ex, true);
+    return '<div class="srow" data-d="' + x.date + '" style="cursor:pointer"><div><b>' + x.date.slice(8) + '/' + x.date.slice(5,7) + '/' + x.date.slice(0,4) + '</b><small>' + WD[dt.getUTCDay()] + (x.date === d.today ? ' · today' : '') + '</small></div>' +
+      '<div class="v"><b>' + fw(x.gold) + ' g</b><small>' + fd(x.diamond) + ' ct · ' + (x.bills || 0) + ' bills</small>' + (ps.length ? '<small>' + ps.join(' · ') + '</small>' : '') + '</div></div>'; }).join('') : '<div class="empty">No sales recorded this month.</div>';
   $('salesList').innerHTML = d.staff.length ? d.staff.map(s =>
-    '<div class="srow" data-staff="' + esc(s.code) + '"><div><b>' + esc(s.name) + '</b><small>' + esc(s.code) + (s.dept ? ' · ' + esc(s.dept) : '') + (s.branch ? ' · ' + esc(s.branch) : '') + '</small></div>' +
-    '<div class="v"><b>' + fw(s.gold) + ' g</b><small>' + fd(s.diamond) + ' ct · ' + (s.bills || 0) + ' bills · ' + inr(s.inc) + '</small>' + (exParts(s.ex).length ? '<small>' + exParts(s.ex).join(' · ') + '</small>' : '') + '</div></div>').join('')
+    '<div class="srow"' + (s.inactive ? ' style="opacity:.75"' : ' data-staff="' + esc(s.code) + '"') + '><div><b>' + esc(s.name) + (s.inactive ? ' <span style="font-size:11px;font-weight:600;color:#a06a00">(inactive)</span>' : '') + '</b><small>' + esc(s.code) + (s.dept ? ' · ' + esc(s.dept) : '') + (s.branch ? ' · ' + esc(s.branch) : '') + '</small></div>' +
+    '<div class="v"><b>' + fw(s.gold) + ' g</b><small>' + fd(s.diamond) + ' ct · ' + (s.bills || 0) + ' bills · ' + inr(s.inc) + '</small>' + (exParts(s.ex, true).length ? '<small>' + exParts(s.ex, true).join(' · ') + '</small>' : '') + '</div></div>').join('')
     : '<div class="empty">No staff have a Sales software ID yet.</div>';
 }
 async function loadSales(month){
@@ -785,6 +797,25 @@ $('tab-me').onclick = () => { setTab('me'); loadMe(); };
 $('tab-profile').onclick = () => { setTab('profile'); };
 $('out2').onclick = () => $('out').click();
 $('tab-sales').onclick = () => { setTab('sales'); loadSales(); };
+
+/* date-wise report */
+function dmyF(d){ return d.slice(8) + '/' + d.slice(5,7) + '/' + d.slice(0,4); }
+async function loadDateReport(from, to){
+  const out = $('dwOut'); out.innerHTML = '<div class="empty">Loading…</div>';
+  try{
+    const d = await api({action:'managerSalesDate', from: from, to: to});
+    if(!d.ok){ if(authFail(d)) return; out.innerHTML = '<div class="empty">' + esc(d.error || 'Could not load') + '</div>'; return; }
+    $('dwFrom').value = d.from; $('dwTo').value = d.to;
+    const tp = exParts(d.totals.ex, true);
+    out.innerHTML = '<div class="sale"><div>Gold<b>' + fw(d.totals.gold) + ' <i>g</i></b></div><div>Diamond<b>' + fd(d.totals.diamond) + ' <i>ct</i></b></div><div>Bills<b>' + (d.totals.bills || 0) + '</b></div></div>' +
+      '<div class="note">' + (d.from === d.to ? dmyF(d.from) : dmyF(d.from) + ' to ' + dmyF(d.to)) + (tp.length ? ' · ' + tp.join(' · ') : '') + ' · Studex and Fancy not included</div>' +
+      (d.staff.length ? d.staff.map(s => { const ps = exParts(s.ex, true);
+        return '<div class="srow"><div><b>' + esc(s.name) + (s.inactive ? ' <span style="font-size:11px;font-weight:600;color:#a06a00">(inactive)</span>' : '') + '</b><small>' + esc(s.code) + (s.dept ? ' · ' + esc(s.dept) : '') + (s.branch ? ' · ' + esc(s.branch) : '') + '</small></div>' +
+          '<div class="v"><b>' + fw(s.gold) + ' g</b><small>' + fd(s.diamond) + ' ct · ' + (s.bills || 0) + ' bills</small>' + (ps.length ? '<small>' + ps.join(' · ') + '</small>' : '') + '</div></div>'; }).join('') : '<div class="empty">No sales on these dates.</div>');
+  }catch(e){ out.innerHTML = '<div class="empty">Can\'t reach the server.</div>'; }
+}
+$('dwGo').onclick = () => { const f = $('dwFrom').value, t = $('dwTo').value || f; if(f) loadDateReport(f, t); };
+$('dailyList').addEventListener('click', ev => { const r = ev.target.closest('[data-d]'); if(r){ loadDateReport(r.dataset.d, r.dataset.d); $('dwOut').scrollIntoView({behavior:'smooth', block:'center'}); } });
 $('sPrev').onclick = () => loadSales(addMonth(smonth, -1));
 $('sNext').onclick = () => loadSales(addMonth(smonth, 1));
 $('salesList').addEventListener('click', e => { const p = e.target.closest('[data-staff]'); if(p) openDetail(p.dataset.staff); });

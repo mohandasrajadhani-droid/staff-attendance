@@ -82,6 +82,15 @@ th,td{padding:8px 6px;text-align:right;border-bottom:1px solid var(--line);white
 th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:#fff}
 th{color:var(--mute);font-weight:600;font-size:12px}
 .empty{color:var(--mute);font-size:13px;padding:6px 0}
+.tap{cursor:pointer}.tap:active{background:#eef3ff}.chev{color:#9aa6c4;font-size:18px;margin-left:6px}
+.sub-nav{display:flex;align-items:center;gap:10px;margin-bottom:12px}.sub-nav button{background:#fff;border:1px solid var(--line);border-radius:10px;padding:7px 13px;font-size:14px;font-weight:600;color:var(--ink)}
+.sub-nav b{flex:1;text-align:center;font-size:15px}
+.sum4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center;margin-bottom:12px}.sum4 div{background:#fff;border:1px solid var(--line);border-radius:12px;padding:9px 2px}.sum4 b{display:block;font-size:19px}.sum4 span{font-size:11px;color:var(--mute)}
+.cal7{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:12px}.cal7 b{color:var(--mute);font-weight:600;font-size:11px}
+.cal7 i{font-style:normal;border-radius:9px;padding:9px 0;font-weight:600;color:#fff}.cal7 .P{background:var(--ok)}.cal7 .A{background:var(--bad)}.cal7 .L{background:#f2a31b}.cal7 .O{background:#e8edf8;color:#8a95b2}.cal7 .F{background:none;color:#c0c8dc}.cal7 .T{outline:2px solid var(--blue)}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11.5px;color:var(--mute);margin-top:10px}.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px}
+.tabs2{display:flex;gap:6px;overflow-x:auto;margin-bottom:10px;padding-bottom:2px}.tabs2 button{flex:none;border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 13px;font-size:13px;color:var(--mute);font-weight:600}.tabs2 button.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+.dbar{display:inline-block;height:7px;background:linear-gradient(90deg,#1743d8,#4f86ff);border-radius:9px;vertical-align:middle;margin-right:7px}
 .stamp{text-align:center;color:var(--mute);font-size:12px;margin:4px 0 14px}
 </style>
 </head>
@@ -108,6 +117,8 @@ th{color:var(--mute);font-weight:600;font-size:12px}
     <div class="note">Only staff set as Managing Director in HRMS can sign in here.</div>
   </section>
 
+  <section id="sub" class="hidden"></section>
+
   <section id="view" class="hidden">
     <div class="chips" id="brChips"></div>
     <div class="card" id="alertsCard"><h2>Needs your attention</h2><div id="alerts"></div></div>
@@ -121,7 +132,7 @@ th{color:var(--mute);font-weight:600;font-size:12px}
     </div>
 
     <div class="card">
-      <h2>Floor managers today <small id="lateNote"></small></h2>
+      <h2>Managers today <small id="lateNote"></small></h2>
       <div id="fms"></div>
     </div>
 
@@ -134,9 +145,10 @@ th{color:var(--mute);font-weight:600;font-size:12px}
     </div>
 
     <div class="card">
-      <h2>Bills discounted <small>by floor managers</small></h2>
+      <h2>Bills discounted <small>by managers</small></h2>
       <div class="two" id="discBox"></div>
       <div id="discList" style="margin-top:8px"></div>
+      <button class="btn" id="discDaily" style="margin-top:10px;padding:11px;font-size:14px">Day-by-day details ›</button>
     </div>
 
     <div class="card">
@@ -168,8 +180,8 @@ let session = null, D = null, branch = 'ALL', period = 'month', busy = false;
 
 function url(){ return SERVICE_URL || LS.get('svcUrl') || ''; }
 function showMain(id){
-  ['setup','login','view'].forEach(s => $(s).classList.toggle('hidden', s !== id));
-  $('out').classList.toggle('hidden', id !== 'view'); $('refresh').classList.toggle('hidden', id !== 'view');
+  ['setup','login','view','sub'].forEach(s => $(s).classList.toggle('hidden', s !== id));
+  $('out').classList.toggle('hidden', id !== 'view' && id !== 'sub'); $('refresh').classList.toggle('hidden', id !== 'view');
 }
 async function api(body){
   const res = await fetch(url(), {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(Object.assign({code: session.code, pin: session.pin}, body))});
@@ -210,8 +222,8 @@ function render(){
   const st = f => f.status === 'Present' ? (f.late ? '<span class="chip amber">Late +' + f.lateMin + ' min</span>' : '<span class="chip green">On time</span>')
     : f.status === 'Absent' ? '<span class="chip red">Absent</span>' : (f.status === 'On leave' || f.status === 'Leave pending') ? '<span class="chip grey">Leave · ' + esc(f.leaveType) + '</span>'
     : f.status === 'Not in yet' ? '<span class="chip red">Not in yet</span>' : '<span class="chip grey">' + esc(f.status) + '</span>';
-  $('fms').innerHTML = fms.length ? fms.map(f => '<div class="row"><div><b>' + esc(f.name) + '</b><small>' + esc(f.branch) + '</small></div><div>' + st(f) +
-    '<small>' + (f.first ? 'In ' + esc(f.first) + (f.last ? ' · Out ' + esc(f.last) : '') : 'No punch') + '</small></div></div>').join('') : '<div class="empty">No floor managers in this selection. Set the designation to “Floor Manager” in HRMS Staff Master.</div>';
+  $('fms').innerHTML = fms.length ? fms.map(f => '<div class="row tap" data-mgr="' + esc(f.code) + '"><div><b>' + esc(f.name) + '</b><small>' + esc(f.branch) + '</small></div><div>' + st(f) +
+    '<small>' + (f.first ? 'In ' + esc(f.first) + (f.last ? ' · Out ' + esc(f.last) : '') : 'No punch') + '</small></div><span class="chev">›</span></div>').join('') : '<div class="empty">No managers in this selection. Set the role to Manager in HRMS Staff Master (Accounts managers are not listed).</div>';
   // sales
   const g = metric(bs, 'gold'), d = metric(bs, 'diamond'), bl = metric(bs, 'bills');
   const kpi = (lbl, v, u, extra, f) => '<div class="kpi"><small>' + lbl + '</small><b>' + f(v) + ' <i>' + u + '</i></b>' + (extra || '') + '</div>';
@@ -229,7 +241,7 @@ function render(){
   const ds = metric(bs, 'disc');
   $('discBox').innerHTML = '<div class="kpi"><small>Today</small><b>' + fw(ds.today) + '</b></div><div class="kpi"><small>This month</small><b>' + fw(ds.month) + '</b>' + cmpHTML(ds.month, ds.prevSame, 'vs last month so far') + '<small>Last month total ' + fw(ds.prev) + '</small></div>';
   const dl = fms.filter(f => f.discMonth || f.discToday);
-  $('discList').innerHTML = dl.length ? dl.map(f => '<div class="row"><div><b>' + esc(f.name) + '</b><small>' + esc(f.branch) + '</small></div><div><b>' + f.discMonth + '</b> this month<small>' + f.discToday + ' today</small></div></div>').join('') : '<div class="empty">No discounted bills recorded. Add discount_bills and discount_by columns to the sales Excel.</div>';
+  $('discList').innerHTML = dl.length ? dl.map(f => '<div class="row tap" data-disc="' + esc(f.code) + '"><div><b>' + esc(f.name) + '</b><small>' + esc(f.branch) + '</small></div><div><b>' + f.discMonth + '</b> this month<small>' + f.discToday + ' today</small></div><span class="chev">›</span></div>').join('') : '<div class="empty">No discounted bills recorded. Add discount_bills and discount_by columns to the sales Excel.</div>';
   // top 5
   const top = branch === 'ALL' ? D.top[period] : ((bs[0] || {}).top || D.top)[period];
   const rk = (arr, key) => arr && arr.length ? arr.map((p, i) => '<div class="rank"><span class="n' + (i === 0 ? ' g1' : '') + '">' + (i + 1) + '</span><div class="nm"><b>' + esc(p.name) + '</b><small>' + esc(p.branch) + '</small></div><div class="v">' + (key === 'gold' ? fw(p.gold) + ' g<small>' + fd(p.diamond) + ' ct</small>' : fd(p.diamond) + ' ct<small>' + fw(p.gold) + ' g</small>') + '</div></div>').join('') : '<div class="empty">No sales yet.</div>';
@@ -285,7 +297,83 @@ $('out').onclick = () => signOut(false); $('refresh').onclick = () => { $('stamp
 $('urlSave').onclick = () => { const v = $('urlIn').value.trim(); if(/^https:\/\//.test(v)){ LS.set('svcUrl', v); showMain('login'); } else alert('Paste the full web address (starts with https://)'); };
 $('brChips').onclick = e => { const b = e.target.closest('button'); if(b){ branch = b.dataset.b; render(); } };
 $('topSeg').onclick = e => { const b = e.target.closest('button'); if(b){ period = b.dataset.p; render(); } };
-setInterval(() => { if(session && !document.hidden) load(); }, 120000);
+
+/* ---------- drill-downs: manager attendance & discount bills day by day ---------- */
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+let SUB = null;
+const monthLbl = m => MONTHS[Number(m.slice(5, 7)) - 1] + ' ' + m.slice(0, 4);
+const shiftM = (m, n) => { let y = Number(m.slice(0, 4)), x = Number(m.slice(5, 7)) + n; while(x < 1){ x += 12; y--; } while(x > 12){ x -= 12; y++; } return y + '-' + (x < 10 ? '0' : '') + x; };
+const dmyFull = s => s.slice(8, 10) + '/' + s.slice(5, 7) + '/' + s.slice(0, 4);
+const WD = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const wdOf = s => WD[new Date(s + 'T00:00:00Z').getUTCDay()];
+function openSub(){ showMain('sub'); window.scrollTo(0, 0); }
+function closeSub(){ SUB = null; showMain('view'); render(); }
+function subShell(title, sub, body){
+  return '<div class="sub-nav"><button id="subBack">‹ Back</button><b>' + esc(title) + '<small style="display:block;color:var(--mute);font-weight:500;font-size:12px">' + esc(sub) + '</small></b></div>' + body;
+}
+async function openManager(code, month){
+  SUB = {t: 'mgr', code: code, month: month || ''};
+  openSub(); $('sub').innerHTML = subShell('Attendance', '', '<div class="card empty">Loading…</div>'); $('subBack').onclick = closeSub;
+  let d; try{ d = await api({action: 'mdManagerMonth', target: code, month: month || undefined}); }catch(e){ d = {error: 'Can\'t reach the server.'}; }
+  if(!SUB || SUB.t !== 'mgr') return;
+  if(!d.ok){ $('sub').innerHTML = subShell('Attendance', '', '<div class="card err">' + esc(d.error || 'Could not load') + (/Unknown action/i.test(d.error || '') ? ' — update the attendance script (new version).' : '') + '</div>'); $('subBack').onclick = closeSub; return; }
+  SUB.month = d.month;
+  const sm = d.summary, thisM = d.today.slice(0, 7);
+  const cal = {}; d.calendar.forEach(x => { cal[x.date] = x; });
+  const y = Number(d.month.slice(0, 4)), mo = Number(d.month.slice(5, 7)), last = new Date(Date.UTC(y, mo, 0)).getUTCDate(), lead = (new Date(Date.UTC(y, mo - 1, 1)).getUTCDay() + 6) % 7;
+  let cells = '<b>M</b><b>T</b><b>W</b><b>T</b><b>F</b><b>S</b><b>S</b>' + '<i class="F"></i>'.repeat(lead);
+  for(let i = 1; i <= last; i++){
+    const ds = d.month + '-' + String(i).padStart(2, '0'), c = cal[ds];
+    const k = !c ? 'F' : c.status === 'Present' ? 'P' : c.status === 'Absent' ? 'A' : /leave/i.test(c.status) ? 'L' : 'O';
+    cells += '<i class="' + k + (ds === d.today ? ' T' : '') + '">' + i + '</i>';
+  }
+  const rows = d.calendar.slice().reverse().filter(x => x.status !== 'Upcoming').map(x => {
+    const chip = x.status === 'Present' ? (x.lateMin ? '<span class="chip amber">Late +' + x.lateMin + ' min</span>' : '<span class="chip green">On time</span>')
+      : x.status === 'Absent' ? '<span class="chip red">Absent</span>' : /leave/i.test(x.status) ? '<span class="chip amber">' + esc(x.status === 'Leave pending' ? 'Leave (pending)' : 'Leave') + (x.leaveType ? ' · ' + esc(x.leaveType) : '') + '</span>'
+      : x.status === 'Not in yet' ? '<span class="chip grey">Not in yet</span>' : '<span class="chip grey">' + esc(x.status) + '</span>';
+    const hm = m => Math.floor(m / 60) + 'h ' + String(m % 60).padStart(2, '0') + 'm';
+    const t = x.first ? 'In ' + x.first + (x.last ? ' · Out ' + x.last + (x.net != null ? ' · ' + hm(x.net) : '') : '') : '';
+    return '<div class="row"><div><b>' + dmyFull(x.date).slice(0, 5) + ' ' + wdOf(x.date) + '</b></div><div>' + chip + (t ? '<small>' + t + '</small>' : '') + '</div></div>';
+  }).join('');
+  $('sub').innerHTML = subShell(d.manager.name, d.manager.branch + (d.manager.desig ? ' · ' + d.manager.desig : '') + ' · attendance',
+    '<div class="sub-nav"><button id="mPrev">‹</button><b>' + monthLbl(d.month) + '</b><button id="mNext"' + (d.month >= thisM ? ' disabled style="opacity:.4"' : '') + '>›</button></div>' +
+    '<div class="sum4"><div><b style="color:var(--ok)">' + sm.present + '</b><span>Present</span></div><div><b style="color:var(--bad)">' + sm.absent + '</b><span>Absent</span></div><div><b style="color:#b27400">' + sm.onLeave + '</b><span>Leave</span></div><div><b>' + sm.late + '</b><span>Late</span></div></div>' +
+    '<div class="card"><div class="cal7">' + cells + '</div><div class="legend"><span><i style="background:var(--ok)"></i>Present</span><span><i style="background:var(--bad)"></i>Absent</span><span><i style="background:#f2a31b"></i>Leave</span><span><i style="background:#e8edf8"></i>Off / holiday</span></div></div>' +
+    '<div class="card"><h2>Day by day <small>late after ' + esc(d.lateAfter) + '</small></h2>' + (rows || '<div class="empty">No days yet.</div>') + '</div>');
+  $('subBack').onclick = closeSub;
+  $('mPrev').onclick = () => openManager(code, shiftM(d.month, -1));
+  $('mNext').onclick = () => { if(d.month < thisM) openManager(code, shiftM(d.month, 1)); };
+}
+async function openDisc(who, month){
+  SUB = {t: 'disc', who: who || 'ALL', month: month || ''};
+  openSub(); $('sub').innerHTML = subShell('Bills discounted', '', '<div class="card empty">Loading…</div>'); $('subBack').onclick = closeSub;
+  let d; try{ d = await api({action: 'mdDiscMonth', month: month || undefined}); }catch(e){ d = {error: 'Can\'t reach the server.'}; }
+  if(!SUB || SUB.t !== 'disc') return;
+  if(!d.ok){ $('sub').innerHTML = subShell('Bills discounted', '', '<div class="card err">' + esc(d.error || 'Could not load') + (/Unknown action/i.test(d.error || '') ? ' — update the attendance script (new version).' : '') + '</div>'); $('subBack').onclick = closeSub; return; }
+  SUB.month = d.month; const thisM = d.today.slice(0, 7), who2 = SUB.who;
+  const nm = {}; d.managers.forEach(m => { nm[m.code] = m.name; });
+  const val = x => who2 === 'ALL' ? x.total : (x.by[who2] || 0);
+  const days = d.days.filter(x => val(x) > 0), mx = Math.max.apply(null, days.map(val).concat([1]));
+  const tot = who2 === 'ALL' ? d.total : ((d.managers.filter(m => m.code === who2)[0] || {}).month || 0);
+  const rows = days.map(x => {
+    const split = who2 === 'ALL' ? Object.keys(x.by).sort((a, b) => x.by[b] - x.by[a]).map(k => esc(nm[k] || k) + ' ' + x.by[k]).join(' · ') : '';
+    return '<div class="row"><div><b>' + dmyFull(x.date).slice(0, 5) + ' ' + wdOf(x.date) + '</b>' + (split ? '<small>' + split + '</small>' : '') + '</div><div><span class="dbar" style="width:' + Math.max(6, Math.round(val(x) / mx * 60)) + 'px"></span><b>' + val(x) + '</b></div></div>';
+  }).join('');
+  const tabs = '<div class="tabs2"><button data-w="ALL" class="' + (who2 === 'ALL' ? 'on' : '') + '">All</button>' + d.managers.map(m => '<button data-w="' + esc(m.code) + '" class="' + (who2 === m.code ? 'on' : '') + '">' + esc(m.name) + '</button>').join('') + '</div>';
+  const by = who2 === 'ALL' ? '<div class="card"><h2>By manager <small>' + monthLbl(d.month) + '</small></h2>' + d.managers.map(m => '<div class="row tap" data-w="' + esc(m.code) + '"><div><b>' + esc(m.name) + '</b><small>' + esc(m.branch) + '</small></div><div><b>' + m.month + '</b><span class="chev">›</span></div></div>').join('') + '</div>' : '';
+  $('sub').innerHTML = subShell('Bills discounted', (who2 === 'ALL' ? 'all managers' : nm[who2] || who2) + ' · day by day',
+    '<div class="sub-nav"><button id="mPrev">‹</button><b>' + monthLbl(d.month) + '</b><button id="mNext"' + (d.month >= thisM ? ' disabled style="opacity:.4"' : '') + '>›</button></div>' + tabs +
+    '<div class="card"><div class="big"><b>' + tot + '</b><span>bills this month</span></div></div>' +
+    '<div class="card"><h2>Daily <small>' + days.length + ' day' + (days.length === 1 ? '' : 's') + '</small></h2>' + (rows || '<div class="empty">No discounted bills recorded for this month.</div>') + '</div>' + by);
+  $('subBack').onclick = closeSub;
+  $('mPrev').onclick = () => openDisc(who2, shiftM(d.month, -1));
+  $('mNext').onclick = () => { if(d.month < thisM) openDisc(who2, shiftM(d.month, 1)); };
+  $('sub').querySelectorAll('[data-w]').forEach(b => b.onclick = () => openDisc(b.dataset.w, d.month));
+}
+$('fms').onclick = e => { const r = e.target.closest('[data-mgr]'); if(r) openManager(r.dataset.mgr); };
+$('discList').onclick = e => { const r = e.target.closest('[data-disc]'); if(r) openDisc(r.dataset.disc); };
+$('discDaily').onclick = () => openDisc('ALL');
+setInterval(() => { if(session && !document.hidden && !SUB) load(); }, 120000);
 document.addEventListener('visibilitychange', () => { if(!document.hidden && session) load(); });
 
 (function start(){

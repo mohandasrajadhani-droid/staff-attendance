@@ -354,22 +354,22 @@ async function openDisc(who, month){
   if(!SUB || SUB.t !== 'disc') return;
   if(!d.ok){ $('sub').innerHTML = subShell('Bills discounted', '', '<div class="card err">' + esc(d.error || 'Could not load') + (/Unknown action/i.test(d.error || '') ? ' — update the attendance script (new version).' : '') + '</div>'); $('subBack').onclick = closeSub; return; }
   SUB.month = d.month; const thisM = d.today.slice(0, 7), who2 = SUB.who;
-  const nm = {}; d.managers.forEach(m => { nm[m.code] = m.name; });
+  const nm = {}, bOf = {}; d.managers.forEach(m => { nm[m.code] = m.name; bOf[m.code] = m.branch || '—'; });
   const val = x => who2 === 'ALL' ? x.total : (x.by[who2] || 0);
   const mg = d.managers.filter(m => m.code === who2)[0] || {};
   const denom = x => who2 === 'ALL' ? (x.bills || 0) : ((x.brBills || {})[mg.branch || '—'] || 0);
   const days = d.days.filter(x => val(x) > 0), mx = Math.max.apply(null, days.map(val).concat([1]));
   const tot = who2 === 'ALL' ? d.total : (mg.month || 0), totDen = who2 === 'ALL' ? d.totalBills : (mg.branchBills || 0);
   const rows = days.map(x => {
-    const split = who2 === 'ALL' ? Object.keys(x.by).sort((a, b) => x.by[b] - x.by[a]).map(k => esc(nm[k] || k) + ' ' + x.by[k]).join(' · ') : '';
-    return '<div class="row"><div><b>' + dmyFull(x.date).slice(0, 5) + ' ' + wdOf(x.date) + '</b>' + (split ? '<small>' + split + '</small>' : '') + '</div><div><span class="dbar" style="width:' + Math.max(6, Math.round(val(x) / mx * 60)) + 'px"></span><b>' + val(x) + '</b><small>' + pctf(val(x), denom(x)) + ' of ' + denom(x) + ' bills</small></div></div>';
+    const split = who2 === 'ALL' ? Object.keys(x.by).sort((a, b) => x.by[b] - x.by[a]).map(k => { const bm = bOf[k], dn = ((x.brBills || {})[bm] || 0); return esc(nm[k] || k) + ' ' + x.by[k] + ' (' + pctf(x.by[k], dn) + ' of ' + dn + ' ' + esc(bm || '') + ' bills)'; }).join('<br>') : '';
+    return '<div class="row"><div><b>' + dmyFull(x.date).slice(0, 5) + ' ' + wdOf(x.date) + '</b>' + (split ? '<small>' + split + '</small>' : '') + '</div><div><span class="dbar" style="width:' + Math.max(6, Math.round(val(x) / mx * 60)) + 'px"></span><b>' + val(x) + '</b>' + (who2 === 'ALL' ? '' : '<small>' + pctf(val(x), denom(x)) + ' of ' + denom(x) + ' bills</small>') + '</div></div>';
   }).join('');
   const tabs = '<div class="tabs2"><button data-w="ALL" class="' + (who2 === 'ALL' ? 'on' : '') + '">All</button>' + d.managers.map(m => '<button data-w="' + esc(m.code) + '" class="' + (who2 === m.code ? 'on' : '') + '">' + esc(m.name) + '</button>').join('') + '</div>';
   const by = who2 === 'ALL' ? '<div class="card"><h2>By manager <small>' + monthLbl(d.month) + '</small></h2>' + d.managers.map(m => '<div class="row tap" data-w="' + esc(m.code) + '"><div><b>' + esc(m.name) + '</b><small>' + esc(m.branch) + '</small></div><div><b>' + m.month + '</b> · ' + pctf(m.month, m.branchBills) + '<span class="chev">›</span><small>of ' + m.branchBills + ' ' + esc(m.branch || '') + ' bills</small></div></div>').join('') + '</div>' : '';
   $('sub').innerHTML = subShell('Bills discounted', (who2 === 'ALL' ? 'all managers' : nm[who2] || who2) + ' · day by day',
     '<div class="sub-nav"><button id="mPrev">‹</button><b>' + monthLbl(d.month) + '</b><button id="mNext"' + (d.month >= thisM ? ' disabled style="opacity:.4"' : '') + '>›</button></div>' + tabs +
-    '<div class="card"><div class="big"><b>' + tot + '</b><span>bills discounted this month</span></div><div class="big" style="margin-top:6px"><b style="font-size:24px;color:var(--blue)">' + pctf(tot, totDen) + '</b><span>of ' + fw(totDen) + ' bills' + (who2 === 'ALL' ? ' (all branches)' : ' (' + esc(mg.branch || '') + ' branch)') + '</span></div></div>' +
-    '<div class="card"><h2>Daily <small>' + days.length + ' day' + (days.length === 1 ? '' : 's') + '</small></h2>' + (rows || '<div class="empty">No discounted bills recorded for this month.</div>') + '<div class="note">% = discounted bills ÷ all bills sold that day' + (who2 === 'ALL' ? '' : ' in the manager\'s branch') + ' (Studex and Fancy not counted).</div></div>' + by);
+    '<div class="card"><div class="big"><b>' + tot + '</b><span>bills discounted this month</span></div>' + (who2 === 'ALL' ? '' : '<div class="big" style="margin-top:6px"><b style="font-size:24px;color:var(--blue)">' + pctf(tot, totDen) + '</b><span>of ' + fw(totDen) + ' bills at ' + esc(mg.branch || '') + '</span></div>') + '</div>' +
+    '<div class="card"><h2>Daily <small>' + days.length + ' day' + (days.length === 1 ? '' : 's') + '</small></h2>' + (rows || '<div class="empty">No discounted bills recorded for this month.</div>') + '<div class="note">% = discounted bills ÷ all bills sold on that same day at that manager\'s branch only (Studex and Fancy not counted).</div></div>' + by);
   $('subBack').onclick = closeSub;
   $('mPrev').onclick = () => openDisc(who2, shiftM(d.month, -1));
   $('mNext').onclick = () => { if(d.month < thisM) openDisc(who2, shiftM(d.month, 1)); };

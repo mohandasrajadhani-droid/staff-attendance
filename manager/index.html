@@ -389,7 +389,25 @@ function renderSelfiePunch(d){
 }
 let sfStream = null;
 function closeSelfie(){ if(sfStream){ sfStream.getTracks().forEach(t => t.stop()); sfStream = null; } const o = $('sfOv'); if(o) o.remove(); }
+
+/* One-time notice before the first selfie punch: what is collected, why, and for how long. Logged on the server. */
+function ensureConsent(){
+  return new Promise(res => {
+    if(LS.get('consent_v1') === '1'){ res(true); return; }
+    const o = document.createElement('div'); o.id = 'cnOv';
+    o.style.cssText = 'position:fixed;inset:0;z-index:99;background:rgba(10,15,30,.85);display:flex;align-items:center;justify-content:center;padding:18px';
+    o.innerHTML = '<div style="background:#fff;color:#1c2540;border-radius:16px;padding:20px;max-width:380px;font-size:14px;line-height:1.5">' +
+      '<b style="font-size:17px">Before your selfie punch</b>' +
+      '<p>To record your attendance, this app will take <b>one selfie</b> and read your <b>location</b> at the moment you tap Punch.</p>' +
+      '<ul style="padding-left:18px;margin:6px 0"><li>Used only to confirm you are at the shop when you punch.</li><li>Not taken in the background and not shared outside the company.</li><li>The photo is deleted automatically after a limited period.</li></ul>' +
+      '<div style="display:flex;gap:8px;margin-top:14px"><button id="cnNo" style="flex:1;padding:11px;border-radius:10px;border:1px solid #cfd6e6;background:#fff">Not now</button><button id="cnYes" style="flex:1;padding:11px;border-radius:10px;border:0;background:#1f3a8a;color:#fff;font-weight:600">I agree</button></div></div>';
+    document.body.appendChild(o);
+    $('cnNo').onclick = () => { o.remove(); res(false); };
+    $('cnYes').onclick = () => { LS.set('consent_v1', '1'); o.remove(); res(true); try{ api({action: 'consent', kind: 'selfie-location', version: 1}); }catch(e){} };
+  });
+}
 async function openSelfie(){
+  if(!(await ensureConsent())) return;
   closeSelfie();
   const ov = document.createElement('div'); ov.id = 'sfOv';
   ov.innerHTML = '<b style="font-size:18px">Selfie punch</b><video id="sfVid" autoplay playsinline muted></video><div class="sfMsg" id="sfMsg">Starting camera and location…</div><button class="sfGo" id="sfGo" disabled>Take selfie &amp; punch</button><button class="sfX" id="sfX">Cancel</button>';
@@ -429,17 +447,21 @@ async function openSelfie(){
     }catch(e){ setMsg('<span style="color:#ff9b95">No internet. Please try again.</span>'); $('sfGo').disabled = false; }
   };
 }
-function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function dmy(s){ const d = new Date(s + 'T00:00:00Z'); return d.getUTCDate() + ' ' + MON[d.getUTCMonth()].slice(0,3); }
 function longDate(s){ const d = new Date(s + 'T00:00:00Z'); return DOW[d.getUTCDay()] + ', ' + d.getUTCDate() + ' ' + MON[d.getUTCMonth()] + ' ' + d.getUTCFullYear(); }
 
 async function api(body){
   const res = await fetch(url(), {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
-    body: JSON.stringify(Object.assign({code: session.code, pin: session.pin}, body))});
+    body: JSON.stringify(Object.assign({code: session.code, token: session.token}, body))});
+  return res.json();
+}
+async function rawPost(body){
+  const res = await fetch(url(), {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(body)});
   return res.json();
 }
 function authFail(d){
-  if(d.locked || d.notManager || /Wrong|Enter/.test(d.error || '')){ signOut(true); $('loginErr').textContent = d.error; return true; }
+  if(d.relogin || d.locked || d.notManager || /Wrong|Enter/.test(d.error || '')){ signOut(true); $('loginErr').textContent = d.error; return true; }
   return false;
 }
 
@@ -776,8 +798,11 @@ $('go').onclick = async ()=>{
   const code = $('code').value.trim(), pin = $('pin').value.trim();
   if(!code || !pin){ $('loginErr').textContent = 'Enter your staff code and PIN.'; return; }
   $('go').disabled = true; $('loginErr').textContent = '';
-  session = {code, pin}; date = null; data = null;
+  date = null; data = null;
   try{
+    const lg = await rawPost({action:'login', code, pin});
+    if(!lg.ok){ $('loginErr').textContent = lg.error || 'Could not sign in.'; $('pin').value = ''; $('go').disabled = false; return; }
+    session = {code: lg.code || code, token: lg.token}; $('pin').value = '';        // the PIN is not kept anywhere
     const d = await api({action:'managerView'});
     if(!d.ok){ $('loginErr').textContent = d.error || 'Could not sign in.'; session = null; }
     else {
@@ -878,7 +903,17 @@ $('urlSave').onclick = ()=>{ const v = $('urlIn').value.trim(); if(/^https:\/\/s
 function start(){
   if(!url()){ showMain('setup'); return; }
   const s = LS.get('session');
-  if(s){ try{ session = JSON.parse(s); load(); return; }catch(e){} }
+  if(s){ try{
+    session = JSON.parse(s);
+    if(session.pin && !session.token){            // saved by an older version: swap the stored PIN for a token, once
+      const old = session; session = null;
+      rawPost({action:'login', code: old.code, pin: old.pin}).then(lg => {
+        if(lg.ok){ session = {code: lg.code || old.code, token: lg.token}; LS.set('session', JSON.stringify(session)); load(); }
+        else { LS.del('session'); showMain('login'); }
+      }).catch(() => { showMain('login'); });
+      return;
+    }
+    load(); return; }catch(e){} }
   showMain('login');
 }
 function viewOpen(){

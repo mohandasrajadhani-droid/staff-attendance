@@ -246,7 +246,7 @@ function hm(mins){ return Math.floor(mins/60) + 'h ' + String(mins%60).padStart(
 function toMin(t){ const [h,m] = t.split(':').map(Number); return h*60 + m; }
 function addMonth(ym, d){ let [y,m] = ym.split('-').map(Number); m += d; while(m>12){m-=12;y++;} while(m<1){m+=12;y--;} return y + '-' + String(m).padStart(2,'0'); }
 function addDays(s, n){ const d = new Date(s + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0,10); }
-function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 const SF_WHY = {nogeo:'branch location not set', outside:'you are away from the branch', weakgps:'weak GPS signal', mock:'location looked fake', device:'a different phone than usual'};
 function deviceId(){ let d = LS.get('ms_dev'); if(!d){ d = 'd' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36); LS.set('ms_dev', d); } return d; }
 function renderSelfie(d){
@@ -261,7 +261,25 @@ function renderSelfie(d){
 }
 let sfStream = null;
 function closeSelfie(){ if(sfStream){ sfStream.getTracks().forEach(t => t.stop()); sfStream = null; } const o = $('sfOv'); if(o) o.remove(); }
+
+/* One-time notice before the first selfie punch: what is collected, why, and for how long. Logged on the server. */
+function ensureConsent(){
+  return new Promise(res => {
+    if(LS.get('consent_v1') === '1'){ res(true); return; }
+    const o = document.createElement('div'); o.id = 'cnOv';
+    o.style.cssText = 'position:fixed;inset:0;z-index:99;background:rgba(10,15,30,.85);display:flex;align-items:center;justify-content:center;padding:18px';
+    o.innerHTML = '<div style="background:#fff;color:#1c2540;border-radius:16px;padding:20px;max-width:380px;font-size:14px;line-height:1.5">' +
+      '<b style="font-size:17px">Before your selfie punch</b>' +
+      '<p>To record your attendance, this app will take <b>one selfie</b> and read your <b>location</b> at the moment you tap Punch.</p>' +
+      '<ul style="padding-left:18px;margin:6px 0"><li>Used only to confirm you are at the shop when you punch.</li><li>Not taken in the background and not shared outside the company.</li><li>The photo is deleted automatically after a limited period.</li></ul>' +
+      '<div style="display:flex;gap:8px;margin-top:14px"><button id="cnNo" style="flex:1;padding:11px;border-radius:10px;border:1px solid #cfd6e6;background:#fff">Not now</button><button id="cnYes" style="flex:1;padding:11px;border-radius:10px;border:0;background:#1f3a8a;color:#fff;font-weight:600">I agree</button></div></div>';
+    document.body.appendChild(o);
+    $('cnNo').onclick = () => { o.remove(); res(false); };
+    $('cnYes').onclick = () => { LS.set('consent_v1', '1'); o.remove(); res(true); try{ api({action: 'consent', kind: 'selfie-location', version: 1}); }catch(e){} };
+  });
+}
 async function openSelfie(){
+  if(!(await ensureConsent())) return;
   closeSelfie();
   const ov = document.createElement('div'); ov.id = 'sfOv';
   ov.innerHTML = '<b style="font-size:18px">Selfie punch</b><video id="sfVid" autoplay playsinline muted></video><div class="sfMsg" id="sfMsg">Starting camera and location…</div><button class="sfGo" id="sfGo" disabled>Take selfie &amp; punch</button><button class="sfX" id="sfX">Cancel</button>';
@@ -302,23 +320,43 @@ async function openSelfie(){
   };
 }
 function dmyFull(s){ if(!s) return ''; const d = new Date(s + 'T00:00:00Z'); return isNaN(d) ? '' : String(d.getUTCDate()).padStart(2,'0') + '/' + String(d.getUTCMonth()+1).padStart(2,'0') + '/' + d.getUTCFullYear(); }
-let showAcc = false;
+let showAcc = false, revealed = null;
 function renderProfDetails(p){
   p = p || {};
   const row = (n, v, extra) => '<div class="prow"><span>' + n + '</span><b>' + (v ? esc(v) : '<i style="color:#9aa5bd;font-weight:400">Not added</i>') + (extra || '') + '</b></div>';
-  const acc = p.bankAcc ? (showAcc ? p.bankAcc : '••••••' + p.bankAcc.slice(-4)) : '';
+  const f = showAcc && revealed ? revealed : p;            // full numbers only after the PIN was typed again
+  const has = p.bankAcc || p.uan || p.esi;
   $('profDetails').innerHTML = row('Date of birth', dmyFull(p.dob)) + row('Date of joining', dmyFull(p.doj)) + row('Bank', p.bankName) +
-    row('Account no.', acc, p.bankAcc ? ' <button class="vall" id="accTog">' + (showAcc ? 'Hide' : 'Show') + '</button>' : '') +
-    row('IFSC', p.ifsc) + row('PF UAN', p.uan) + row('ESI number', p.esi) +
+    row('Account no.', f.bankAcc, '') + row('IFSC', p.ifsc) + row('PF UAN', f.uan) + row('ESI number', f.esi) +
+    (has ? (showAcc ? '<button class="vall" id="accTog">Hide numbers</button>' :
+      '<div id="revBox"><button class="vall" id="accTog">Show full numbers</button></div>') : '') +
     '<div class="note">Wrong or missing? Ask the office to update it in Staff Master.</div>';
-  const t = $('accTog'); if(t) t.onclick = () => { showAcc = !showAcc; renderProfDetails(p); };
+  const t = $('accTog');
+  if(t) t.onclick = () => {
+    if(showAcc){ showAcc = false; revealed = null; renderProfDetails(p); return; }
+    $('revBox').innerHTML = '<input id="revPin" type="password" inputmode="numeric" placeholder="Type your PIN" style="width:130px;padding:8px;border-radius:8px;border:1px solid #cfd6e6;margin-right:6px"> <button class="vall" id="revGo">Show</button> <span id="revErr" style="color:#c0392b;font-size:12px"></span>';
+    $('revGo').onclick = async () => {
+      $('revGo').disabled = true;
+      try{
+        const d = await rawPost({action:'revealBank', code: session.code, pin: $('revPin').value.trim()});
+        if(d.ok){ revealed = d; showAcc = true; renderProfDetails(p); setTimeout(() => { showAcc = false; revealed = null; try{ renderProfDetails(p); }catch(e){} }, 60000); }
+        else { $('revErr').textContent = d.error || 'Wrong PIN.'; $('revGo').disabled = false; }
+      }catch(e){ $('revErr').textContent = 'No internet.'; $('revGo').disabled = false; }
+    };
+  };
 }
 function dmy(s){ const d = new Date(s + 'T00:00:00Z'); return d.getUTCDate() + ' ' + MON[d.getUTCMonth()].slice(0,3); }
 
 async function api(body){
   // text/plain avoids a CORS preflight, which Apps Script cannot answer
   const res = await fetch(url(), {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
-    body: JSON.stringify(Object.assign({code: session.code, pin: session.pin}, body))});
+    body: JSON.stringify(Object.assign({code: session.code, token: session.token}, body))});
+  const d = await res.json();
+  if(d && d.relogin){ signOut(true); $('loginErr').textContent = d.error || 'Please sign in again.'; }
+  return d;
+}
+async function rawPost(body){
+  const res = await fetch(url(), {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(body)});
   return res.json();
 }
 
@@ -556,10 +594,13 @@ $('go').onclick = async ()=>{
   const code = $('code').value.trim(), pin = $('pin').value.trim();
   if(!code || !pin){ $('loginErr').textContent = 'Enter your staff code and PIN.'; return; }
   $('go').disabled = true; $('loginErr').textContent = '';
-  session = {code, pin}; month = null;
+  month = null;
   try{
+    const lg = await rawPost({action:'login', code, pin});
+    if(!lg.ok){ $('loginErr').textContent = lg.error || 'Could not sign in.'; $('pin').value = ''; $('go').disabled = false; return; }
+    session = {code: lg.code || code, token: lg.token}; $('pin').value = '';        // the PIN is not kept anywhere
     const d = await api({action:'staffView'});
-    if(!d.ok){ $('loginErr').textContent = d.error || 'Could not sign in.'; session = null; }
+    if(!d.ok){ if(!d.relogin) $('loginErr').textContent = d.error || 'Could not sign in.'; session = null; }
     else {
       if($('keep').checked) LS.set('session', JSON.stringify(session));
       LS.set('cache_' + d.month, JSON.stringify({at: new Date().toLocaleString(), d}));
@@ -620,7 +661,17 @@ $('lvSend').onclick = async ()=>{
 function start(){
   if(!url()){ showMain('setup'); $('setup').classList.remove('hidden'); return; }
   const s = LS.get('session');
-  if(s){ try{ session = JSON.parse(s); load(); return; }catch(e){} }
+  if(s){ try{
+    session = JSON.parse(s);
+    if(session.pin && !session.token){            // saved by an older version: swap the stored PIN for a token, once
+      const old = session; session = null;
+      rawPost({action:'login', code: old.code, pin: old.pin}).then(lg => {
+        if(lg.ok){ session = {code: lg.code || old.code, token: lg.token}; LS.set('session', JSON.stringify(session)); load(); }
+        else { LS.del('session'); showMain('login'); }
+      }).catch(() => { showMain('login'); });
+      return;
+    }
+    load(); return; }catch(e){} }
   showMain('login');
 }
 // auto-refresh: every 2 minutes while the app is open, and when you come back to it

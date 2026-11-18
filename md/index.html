@@ -171,7 +171,7 @@ const SERVICE_URL = 'https://script.google.com/macros/s/AKfycbyGWnUbdocBmLrRAjzy
 
 const LS = {get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }, set(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }, del(k){ try{ localStorage.removeItem(k); }catch(e){} }};
 const $ = id => document.getElementById(id);
-const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const fw = n => Math.round(Number(n) || 0).toLocaleString('en-IN');                       // gold & silver: whole grams
 const fd = n => (Math.round((Number(n) || 0) * 100) / 100).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});   // diamond: 2 decimals
@@ -184,7 +184,13 @@ function showMain(id){
   $('out').classList.toggle('hidden', id !== 'view' && id !== 'sub'); $('refresh').classList.toggle('hidden', id !== 'view');
 }
 async function api(body){
-  const res = await fetch(url(), {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(Object.assign({code: session.code, pin: session.pin}, body))});
+  const res = await fetch(url(), {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(Object.assign({code: session.code, token: session.token}, body))});
+  const d = await res.json();
+  if(d && d.relogin){ signOut(true); $('loginErr').textContent = d.error || 'Please sign in again.'; }
+  return d;
+}
+async function rawPost(body){
+  const res = await fetch(url(), {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(body)});
   return res.json();
 }
 
@@ -206,7 +212,19 @@ function render(){
   // chips
   $('brChips').innerHTML = ['ALL'].concat(D.branches.map(b => b.branch)).map(b => '<button data-b="' + esc(b) + '" class="' + (b === branch ? 'on' : '') + '">' + (b === 'ALL' ? 'All branches' : esc(b)) + '</button>').join('');
   // alerts (branch-specific lines only when they name that branch)
-  const names = D.branches.map(b => b.branch), al = D.alerts.filter(a => branch === 'ALL' || a.text.indexOf(branch) > -1 || !names.some(n => a.text.indexOf(n) > -1));
+  // data-feed health: warn when the office computer has stopped sending punches / sales during shop hours
+  const feedAl = [];
+  try{
+    const F = D.feed;
+    if(F && F.now){
+      const hr = Number(F.now.slice(11, 13)), mins = t => Math.round((new Date(F.now) - new Date(t)) / 60000);
+      if(hr >= 9 && hr < 21){
+        if(F.punchAt && mins(F.punchAt) > F.staleMin) feedAl.push({level: 'red', text: 'Attendance feed has not updated for ' + mins(F.punchAt) + ' min — check the office computer / punch machine.'});
+        if(F.salesAt && mins(F.salesAt) > F.staleMin) feedAl.push({level: 'red', text: 'Sales feed has not updated for ' + mins(F.salesAt) + ' min — figures may be behind.'});
+      }
+    }
+  }catch(e){}
+  const names = D.branches.map(b => b.branch), al = feedAl.concat(D.alerts).filter(a => branch === 'ALL' || a.text.indexOf(branch) > -1 || !names.some(n => a.text.indexOf(n) > -1));
   $('alerts').innerHTML = al.length ? al.map(a => '<div class="alert ' + a.level + '"><span>' + (a.level === 'red' ? '⚠️' : '•') + '</span><span>' + esc(a.text) + '</span></div>').join('') : '<div class="empty">Nothing needs attention right now. ✓</div>';
   // presence
   const strength = sum(bs, x => x.strength), present = sum(bs, x => x.present), pc = strength ? Math.round(present / strength * 100) : 0;
@@ -282,8 +300,10 @@ async function signIn(){
   const code = $('code').value.trim(), pin = $('pin').value.trim();
   if(!code || !pin){ $('loginErr').textContent = 'Enter your code and PIN.'; return; }
   $('go').disabled = true; $('loginErr').textContent = '';
-  session = {code, pin};
   try{
+    const lg = await rawPost({action:'login', code, pin});
+    if(!lg.ok){ $('loginErr').textContent = lg.error || 'Could not sign in.'; $('pin').value = ''; return; }
+    session = {code: lg.code || code, token: lg.token}; $('pin').value = '';       // the PIN is not kept anywhere
     const d = await api({action: 'mdOverview'});
     if(!d.ok){ session = null; $('loginErr').textContent = d.error || 'Could not sign in.'; return; }
     LS.set('md_session', JSON.stringify(session)); D = d; showMain('view'); render();
@@ -384,7 +404,12 @@ document.addEventListener('visibilitychange', () => { if(!document.hidden && ses
 (function start(){
   if(!url()){ showMain('setup'); return; }
   let s = null; try{ s = JSON.parse(LS.get('md_session') || 'null'); }catch(e){}
-  if(s && s.code && s.pin){
+  if(s && s.code && s.pin && !s.token){          // saved by an older version: swap the stored PIN for a token, once
+    rawPost({action:'login', code: s.code, pin: s.pin}).then(lg => {
+      if(lg.ok){ session = {code: lg.code || s.code, token: lg.token}; LS.set('md_session', JSON.stringify(session)); showMain('view'); load(); }
+      else { LS.del('md_session'); showMain('login'); }
+    }).catch(() => showMain('login'));
+  } else if(s && s.code && s.token){
     session = s; showMain('view');
     try{ const c = JSON.parse(LS.get('md_cache') || 'null'); if(c && c.d && c.d.ok){ D = c.d; render(); $('stamp').textContent = 'Saved figures from ' + c.at + ' · updating…'; } }catch(e){}
     load();
